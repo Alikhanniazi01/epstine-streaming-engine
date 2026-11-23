@@ -1607,7 +1607,7 @@
       async function importSpotifyUrl() {
         const url = document.getElementById('spotify-url-input').value.trim();
         const statusEl = document.getElementById('import-status');
-        if (!url || !url.includes('spotify.com/playlist/')) {
+        if (!url || (!url.includes('spotify.com') && !url.includes('spotify.link') && !url.includes('spoti.fi'))) {
           statusEl.textContent = 'Please paste a valid public Spotify playlist URL (e.g. https://open.spotify.com/playlist/...).';
           statusEl.className = 'text-xs p-3 rounded-lg bg-red-500/15 text-red-300 font-medium';
           statusEl.classList.remove('hidden');
