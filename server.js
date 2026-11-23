@@ -182,45 +182,82 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
-// Auto-Import Any Public Spotify Playlist URL -> Match Every Track on YouTube
+// Helper: run async tasks with bounded concurrency so Render never times out
+async function mapWithConcurrency(items, limit, worker) {
+  const results = new Array(items.length);
+  let nextIdx = 0;
+  async function runner() {
+    while (nextIdx < items.length) {
+      const i = nextIdx++;
+      results[i] = await worker(items[i], i);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, runner));
+  return results.filter(Boolean);
+}
+
+// Auto-Import Any Public Spotify Playlist or Album URL (including spotify.link mobile short links)
 app.post('/api/import-spotify', async (req, res) => {
-  const url = String(req.body?.url || '').trim();
-  if (!url || !url.includes('spotify.com/playlist/')) {
-    return res.status(400).json({ error: 'Please provide a valid public Spotify playlist URL.' });
+  let rawUrl = String(req.body?.url || '').trim();
+  if (!rawUrl || (!rawUrl.includes('spotify.com') && !rawUrl.includes('spotify.link') && !rawUrl.includes('spoti.fi'))) {
+    return res.status(400).json({ error: 'Please paste a valid Spotify playlist or album link.' });
   }
 
   try {
-    const [details, rawTracks] = await Promise.all([
-      spotifyUrlInfo.getDetails(url),
-      spotifyUrlInfo.getTracks(url)
-    ]);
+    // Follow mobile short-links (e.g. spotify.link / spoti.fi) to get canonical open.spotify.com URL
+    if (!rawUrl.includes('open.spotify.com/')) {
+      const redir = await fetch(rawUrl, { redirect: 'follow' });
+      if (redir.url) rawUrl = redir.url;
+    }
 
-    const playlistName = details?.preview?.title || 'Imported Spotify Playlist';
-    const limited = (rawTracks || []).slice(0, 50);
-    const matched = [];
+    const match = rawUrl.match(/spotify\.com\/(?:intl-[a-z-]+\/)?(playlist|album)\/([a-zA-Z0-9]+)/);
+    if (!match) {
+      return res.status(400).json({ error: 'Could not find a Spotify playlist or album ID in that link.' });
+    }
+    const [, kind, spotifyId] = match;
 
-    for (const item of limited) {
-      const title = item.name || item.title || '';
-      const artist = item.artist || (Array.isArray(item.artists) ? item.artists.map(a => a.name).join(', ') : '');
-      if (!title) continue;
+    // Fetch Spotify public embed page directly (fast, reliable, no API key needed)
+    const embedRes = await fetch(`https://open.spotify.com/embed/${kind}/${spotifyId}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+    });
+    if (!embedRes.ok) throw new Error('Spotify returned HTTP ' + embedRes.status);
+    const html = await embedRes.text();
+    const ndMatch = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
+    if (!ndMatch) throw new Error('Could not parse playlist data — make sure the playlist is set to Public.');
+
+    const nextData = JSON.parse(ndMatch[1]);
+    const entity = nextData?.props?.pageProps?.state?.data?.entity || {};
+    const playlistName = entity.name || entity.title || 'Imported Spotify Playlist';
+    const rawTracks = (entity.trackList || []).slice(0, 35);
+
+    if (rawTracks.length === 0) {
+      return res.status(404).json({ error: 'No tracks found. Make sure your Spotify playlist is Public.' });
+    }
+
+    // Match all tracks on YouTube in parallel (8 concurrent workers -> finishes in ~3-5 seconds!)
+    const matched = await mapWithConcurrency(rawTracks, 8, async (item) => {
+      const title = String(item.title || item.name || '').trim();
+      const artist = String(item.subtitle || '').replace(/\u00a0/g, ' ').trim();
+      if (!title) return null;
       try {
-        const r = await yts(`${title} ${artist} official audio`);
+        const r = await yts(`${title} ${artist} audio`);
         const top = r.videos && r.videos[0];
         if (top) {
-          matched.push({
+          return {
             videoId: top.videoId,
             title,
             artist: artist || top.author?.name || 'Unknown Artist',
-            duration: top.seconds || 0,
+            duration: top.seconds || Math.round((item.duration || 0) / 1000),
             thumbnail: top.thumbnail || `https://i.ytimg.com/vi/${top.videoId}/hqdefault.jpg`
-          });
+          };
         }
       } catch (_e) {}
-    }
+      return null;
+    });
 
-    res.json({ name: playlistName, totalFound: limited.length, tracks: matched });
+    res.json({ name: playlistName, totalFound: rawTracks.length, tracks: matched });
   } catch (err) {
-    res.status(500).json({ error: 'Could not read Spotify playlist (make sure it is set to Public): ' + err.message });
+    res.status(500).json({ error: 'Could not import Spotify playlist: ' + err.message });
   }
 });
 
