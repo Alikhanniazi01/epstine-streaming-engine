@@ -1271,9 +1271,49 @@
 
         updateMediaSession(track);
         updatePlayerUI();
+        if (state.view === 'home') renderMain();
+        else highlightActiveTrackInDOM();
         renderRightSidebar();
-        renderMain();
         fetchLyricsFor(track);
+        prefetchUpcomingTracks();
+      }
+
+      function highlightActiveTrackInDOM() {
+        document.querySelectorAll('.track-row').forEach(row => {
+          const playNode = row.querySelector('[data-play-track]');
+          const isCur = playNode && playNode.dataset.playTrack === state.currentTrackId;
+          row.classList.toggle('bg-white/5', !!isCur);
+          const titleEl = playNode ? playNode.querySelector('.text-sm') : null;
+          if (titleEl) {
+            titleEl.classList.toggle('text-[#1DB954]', !!isCur);
+            titleEl.classList.toggle('text-white', !isCur);
+          }
+        });
+      }
+
+      function prefetchUpcomingTracks() {
+        if (!state.settings.backendUrl || state.queue.length === 0) return;
+        const base = state.settings.backendUrl.replace(/\/$/, '');
+        const nextIds = state.queue.slice(state.queueIndex + 1, state.queueIndex + 3);
+        nextIds.forEach(async (id) => {
+          const t = getTrack(id);
+          if (!t || t.source !== 'spotify_lazy' || t.videoId || t._resolving) return;
+          t._resolving = true;
+          try {
+            const r = await fetch(`${base}/api/search?q=${encodeURIComponent(t.title + ' ' + t.artist)}`);
+            if (r.ok) {
+              const d = await r.json();
+              const top = d.tracks && d.tracks[0];
+              if (top && top.videoId) {
+                t.videoId = top.videoId;
+                t.source = 'youtube';
+                t.duration = top.duration || t.duration;
+                t.cover = top.thumbnail || `https://i.ytimg.com/vi/${top.videoId}/hqdefault.jpg`;
+                saveState();
+              }
+            }
+          } catch (e) {}
+        });
       }
 
       function togglePlayPause() {
@@ -1477,6 +1517,7 @@
       // 6. GLOBAL SEARCH & SPOTIFY PLAYLIST IMPORT
       // =========================================================
       let searchDebounce = null;
+      let activeSearchCtrl = null;
 
       function handleSearchInput(val) {
         state.searchQuery = val.trim();
@@ -1494,15 +1535,18 @@
           return;
         }
 
-        renderMain();
+        updateSearchResultsDOM();
 
         clearTimeout(searchDebounce);
+        if (activeSearchCtrl) {
+          try { activeSearchCtrl.abort(); } catch (e) {}
+        }
         if (state.searchQuery.length >= 2) {
-          searchDebounce = setTimeout(() => runGlobalSearch(state.searchQuery), 350);
+          searchDebounce = setTimeout(() => runGlobalSearch(state.searchQuery), 180);
         } else {
           state.remoteResults = [];
           state.searchingRemote = false;
-          renderMain();
+          updateSearchResultsDOM();
         }
       }
 
@@ -1530,12 +1574,14 @@
 
       async function runGlobalSearch(query) {
         state.searchingRemote = true;
-        renderMain();
+        updateSearchResultsDOM();
+        activeSearchCtrl = new AbortController();
+        const signal = activeSearchCtrl.signal;
         try {
           let results = [];
           if (state.settings.backendUrl) {
             const base = state.settings.backendUrl.replace(/\/$/, '');
-            const res = await fetch(`${base}/api/search?q=${encodeURIComponent(query)}`);
+            const res = await fetch(`${base}/api/search?q=${encodeURIComponent(query)}`, { signal });
             if (res.ok) {
               const data = await res.json();
               results = (data.tracks || []).map(t => ({
@@ -1617,10 +1663,11 @@
             if (!existingIds.has(t.id)) state.tracks.push(t);
           });
         } catch (e) {
+          if (e && e.name === 'AbortError') return;
           showToast('Search request failed — check your internet connection.');
         } finally {
           state.searchingRemote = false;
-          renderMain();
+          updateSearchResultsDOM();
         }
       }
 
@@ -2014,6 +2061,42 @@
         `;
       }
 
+      function buildSearchResultsHTML() {
+        const q = state.searchQuery.toLowerCase();
+        const localMatches = q
+          ? state.tracks.filter(t => (t.title + ' ' + t.artist + ' ' + t.album + ' ' + t.genre).toLowerCase().includes(q))
+          : [];
+        if (!q) {
+          return `
+            <h2 class="text-lg font-bold mb-3.5">Browse all</h2>
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5">
+              ${GENRE_CARDS.map(g => `
+                <button data-genre-query="${esc(g.query)}" style="background-color:${g.color}" class="h-24 sm:h-28 rounded-lg p-4 text-left relative overflow-hidden hover:brightness-110 transition">
+                  <span class="text-base sm:text-lg font-extrabold text-white">${esc(g.name)}</span>
+                </button>
+              `).join('')}
+            </div>
+          `;
+        }
+        return `
+          ${state.searchingRemote ? `<div class="text-xs text-[#1DB954] font-semibold mb-4 flex items-center gap-2">Searching global music catalog...</div>` : ''}
+          ${state.remoteResults.length > 0 ? `
+            <h2 class="text-lg font-bold mb-3">Global Search Results</h2>
+            <div class="mb-7">${renderTrackTable(state.remoteResults)}</div>
+          ` : ''}
+          <h2 class="text-lg font-bold mb-3">In Your Catalog (${localMatches.length})</h2>
+          ${renderTrackTable(localMatches)}
+        `;
+      }
+
+      function updateSearchResultsDOM() {
+        if (state.view !== 'search') return;
+        const slot = document.getElementById('search-results-slot');
+        if (!slot) { renderMain(); return; }
+        slot.innerHTML = buildSearchResultsHTML();
+        lucide.createIcons({ nodes: [slot] });
+      }
+
       function renderMain() {
         const vp = document.getElementById('main-viewport');
         if (!vp) return;
@@ -2188,40 +2271,7 @@
                 />
               </div>
 
-              ${!q ? `
-                <div class="mb-6 p-4 rounded-xl bg-[#181818] border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <div class="text-sm font-bold text-white">Search Every Song on the Planet</div>
-                    <div class="text-xs text-[#b3b3b3] mt-0.5">
-                      ${state.settings.backendUrl
-                        ? 'Connected to your 24/7 Cloud Backend — type any song name above to stream live from YouTube Music.'
-                        : state.settings.ytApiKey
-                          ? 'YouTube Data API connected — type any song name above to stream live.'
-                          : 'Type any song or artist name above to search millions of global tracks right away, or connect your 24/7 Cloud Backend in Settings for full-length YouTube Music streams.'}
-                    </div>
-                  </div>
-                  ${!state.settings.backendUrl && !state.settings.ytApiKey ? `<button id="search-open-settings" class="px-4 py-2 rounded-full bg-white text-black text-xs font-bold shrink-0 self-start sm:self-center">Connect Global Search</button>` : ''}
-                </div>
-
-                <h2 class="text-lg font-bold mb-3.5">Browse all</h2>
-                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5">
-                  ${GENRE_CARDS.map(g => `
-                    <button data-genre-query="${esc(g.query)}" style="background-color:${g.color}" class="h-24 sm:h-28 rounded-lg p-4 text-left relative overflow-hidden hover:brightness-110 transition">
-                      <span class="text-base sm:text-lg font-extrabold text-white">${esc(g.name)}</span>
-                    </button>
-                  `).join('')}
-                </div>
-              ` : `
-                ${state.searchingRemote ? `<div class="text-xs text-[#1DB954] font-semibold mb-4 flex items-center gap-2"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Searching global music catalog...</div>` : ''}
-
-                ${state.remoteResults.length > 0 ? `
-                  <h2 class="text-lg font-bold mb-3">Global Search Results</h2>
-                  <div class="mb-7">${renderTrackTable(state.remoteResults)}</div>
-                ` : ''}
-
-                <h2 class="text-lg font-bold mb-3">In Your Catalog (${localMatches.length})</h2>
-                ${renderTrackTable(localMatches)}
-              `}
+              <div id="search-results-slot">${buildSearchResultsHTML()}</div>
             </div>
           `;
 
@@ -2546,11 +2596,13 @@
           }
         });
 
-        // Play/Pause icons
-        const iconName = state.isPlaying ? 'pause' : 'play';
-        ['desk-play-icon', 'mob-play-icon', 'full-play-icon'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.setAttribute('data-lucide', iconName);
+        // Play/Pause icons (direct inline SVG swap — zero full-page icon scan!)
+        const playSvg = '<svg viewBox="0 0 24 24" class="w-5 h-5 fill-current ml-0.5"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
+        const pauseSvg = '<svg viewBox="0 0 24 24" class="w-5 h-5 fill-current"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+        const activeSvg = state.isPlaying ? pauseSvg : playSvg;
+        ['btn-play-pause', 'mob-play-btn', 'full-btn-play'].forEach(btnId => {
+          const b = document.getElementById(btnId);
+          if (b) b.innerHTML = activeSvg;
         });
 
         // Like button states
@@ -2582,7 +2634,6 @@
 
         updateProgressBars();
         renderFullExtra();
-        lucide.createIcons();
       }
 
       function updateMobileNavHighlight() {
