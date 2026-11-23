@@ -205,7 +205,20 @@ app.post('/api/user/data', requireAuth, (req, res) => {
   res.json({ status: 'saved', updatedAt: db[req.user.sub].updatedAt });
 });
 
-// Global YouTube / YouTube Music Search with 30-min cache (No API Key Required)
+// Helper: fetch YouTube autocomplete suggestions for typo / spelling correction (~80ms)
+async function getYouTubeSuggestions(query) {
+  try {
+    const url = `https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(query)}`;
+    const r = await nativeFetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    if (!r.ok) return [];
+    const arr = await r.json();
+    return Array.isArray(arr) && Array.isArray(arr[1]) ? arr[1].slice(0, 6) : [];
+  } catch (_e) {
+    return [];
+  }
+}
+
+// Global Typo-Tolerant YouTube / YouTube Music Search with 30-min cache
 app.get('/api/search', async (req, res) => {
   const q = String(req.query.q || '').trim();
   if (!q) return res.status(400).json({ error: 'Missing query parameter q' });
@@ -213,24 +226,49 @@ app.get('/api/search', async (req, res) => {
   const key = q.toLowerCase();
   const cached = searchCache.get(key);
   if (cached && (Date.now() - cached.ts) < CACHE_TTL_MS) {
-    return res.json({ tracks: cached.tracks, cached: true });
+    return res.json({ ...cached.payload, cached: true });
   }
 
   try {
-    const result = await yts(q + ' audio');
-    const tracks = (result.videos || []).slice(0, 15).map((v) => ({
+    // 1. Run YouTube autocomplete in parallel to catch typos & partial spellings
+    const suggestions = await getYouTubeSuggestions(q);
+    let searchTerm = q;
+    let correctedQuery = '';
+
+    // If top autocomplete suggestion corrects a typo or expands a partial name, prefer it when raw search is weak
+    let result = await yts(searchTerm);
+    let videos = (result.videos || []).filter(v => v.videoId && v.seconds > 20 && v.seconds < 1200);
+
+    // Fallback to top YouTube autocomplete suggestion if raw query returned few/no music results
+    if (videos.length < 3 && suggestions.length > 0 && suggestions[0].toLowerCase() !== key) {
+      correctedQuery = suggestions[0];
+      const alt = await yts(correctedQuery);
+      const altVids = (alt.videos || []).filter(v => v.videoId && v.seconds > 20 && v.seconds < 1200);
+      if (altVids.length > videos.length) {
+        videos = altVids;
+      }
+    }
+
+    // Final fallback: try raw query without duration filter
+    if (videos.length === 0) {
+      videos = (result.videos || []).slice(0, 12);
+    }
+
+    const tracks = videos.slice(0, 15).map((v) => ({
       videoId: v.videoId,
       title: v.title,
       artist: v.author?.name?.replace(' - Topic', '') || 'Unknown Artist',
       duration: v.seconds || 0,
       thumbnail: v.thumbnail || `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`
     }));
+
+    const payload = { tracks, correctedQuery, suggestions };
     if (searchCache.size >= 500) {
       const oldestKey = searchCache.keys().next().value;
       searchCache.delete(oldestKey);
     }
-    searchCache.set(key, { ts: Date.now(), tracks });
-    res.json({ tracks, cached: false });
+    searchCache.set(key, { ts: Date.now(), payload });
+    res.json({ ...payload, cached: false });
   } catch (err) {
     res.status(500).json({ error: 'Search failed: ' + err.message });
   }
