@@ -1605,96 +1605,106 @@
         updateSearchResultsDOM();
         activeSearchCtrl = new AbortController();
         const signal = activeSearchCtrl.signal;
-        try {
-          let results = [];
-          if (state.settings.backendUrl) {
-            const base = state.settings.backendUrl.replace(/\/$/, '');
-            const res = await fetch(`${base}/api/search?q=${encodeURIComponent(query)}`, { signal });
-            if (res.ok) {
-              const data = await res.json();
-              state.correctedQuery = data.correctedQuery || '';
-              state.searchSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
-              results = (data.tracks || []).map(t => ({
-                id: 'yt_' + t.videoId,
-                videoId: t.videoId,
-                title: t.title,
-                artist: t.artist || 'YouTube Music',
-                album: t.album || 'YouTube Full Track',
-                genre: 'Search',
-                duration: t.duration || 0,
-                source: 'youtube',
-                cover: t.thumbnail || `https://i.ytimg.com/vi/${t.videoId}/hqdefault.jpg`
-              }));
-            }
-          } else if (state.settings.ytApiKey) {
-            const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&maxResults=12&q=${encodeURIComponent(query)}&key=${encodeURIComponent(state.settings.ytApiKey)}`;
-            const res = await fetch(url);
-            if (res.ok) {
-              const data = await res.json();
-              results = (data.items || []).map(item => ({
-                id: 'yt_' + item.id.videoId,
-                videoId: item.id.videoId,
-                title: item.snippet.title,
-                artist: item.snippet.channelTitle.replace(' - Topic', ''),
-                album: 'YouTube Music',
-                genre: 'Search',
-                duration: 0,
-                source: 'youtube',
-                cover: item.snippet.thumbnails?.high?.url || `https://i.ytimg.com/vi/${item.id.videoId}/hqdefault.jpg`
-              }));
-            }
-          }
 
-          // Always query free keyless Global Music APIs (Audius full tracks + Apple iTunes global catalog) so ANY song search returns playable results immediately!
-          if (results.length === 0) {
-            const [audiusRes, itunesRes] = await Promise.allSettled([
-              fetch(`https://discoveryprovider.audius.co/v1/tracks/search?query=${encodeURIComponent(query)}&app_name=SpotifyCloud`).then(r => r.ok ? r.json() : null),
-              fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=18`).then(r => r.ok ? r.json() : null)
-            ]);
-
-            if (itunesRes.status === 'fulfilled' && itunesRes.value && Array.isArray(itunesRes.value.results)) {
-              itunesRes.value.results.forEach(item => {
-                if (!item.previewUrl) return;
-                results.push({
-                  id: 'it_' + item.trackId,
-                  title: item.trackName,
-                  artist: item.artistName,
-                  album: item.collectionName || 'Single',
-                  genre: item.primaryGenreName || 'Music',
-                  duration: Math.round((item.trackTimeMillis || 30000) / 1000),
-                  source: 'stream',
-                  streamUrl: item.previewUrl,
-                  cover: item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb', '600x600bb') : ''
-                });
-              });
-            }
-
-            if (audiusRes.status === 'fulfilled' && audiusRes.value && Array.isArray(audiusRes.value.data)) {
-              audiusRes.value.data.slice(0, 6).forEach(item => {
-                if (!item.id) return;
-                results.push({
-                  id: 'au_' + item.id,
-                  title: item.title,
-                  artist: item.user?.name || 'Audius Artist',
-                  album: 'Full Track (Audius)',
-                  genre: item.genre || 'Independent',
-                  duration: item.duration || 0,
-                  source: 'stream',
-                  streamUrl: `https://discoveryprovider.audius.co/v1/tracks/${encodeURIComponent(item.id)}/stream?app_name=SpotifyCloud`,
-                  cover: item.artwork?.['480x480'] || item.artwork?.['150x150'] || ''
-                });
-              });
-            }
-          }
-
-          state.remoteResults = results;
+        const registerTracks = (list) => {
           const existingIds = new Set(state.tracks.map(t => t.id));
-          state.remoteResults.forEach(t => {
-            if (!existingIds.has(t.id)) state.tracks.push(t);
+          list.forEach(t => {
+            if (!existingIds.has(t.id)) {
+              state.tracks.push(t);
+              existingIds.add(t.id);
+            }
           });
+        };
+
+        try {
+          // FAST PATH (~200ms directly from phone to Apple CDN): instant typo-tolerant results & 600x600 art!
+          const fastPromise = fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=15`, { signal })
+            .then(r => r.ok ? r.json() : null)
+            .then(data => {
+              if (!data || !Array.isArray(data.results)) return [];
+              const fastTracks = data.results.map(item => ({
+                id: 'it_' + item.trackId,
+                title: item.trackName,
+                artist: item.artistName,
+                album: item.collectionName || 'Single',
+                genre: item.primaryGenreName || 'Music',
+                duration: Math.round((item.trackTimeMillis || 30000) / 1000),
+                // If Cloud Backend is connected, mark lazy so tapping plays FULL-LENGTH YouTube track!
+                source: state.settings.backendUrl ? 'spotify_lazy' : 'stream',
+                streamUrl: state.settings.backendUrl ? '' : (item.previewUrl || ''),
+                fallbackPreviewUrl: item.previewUrl || '',
+                cover: item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb', '600x600bb') : ''
+              }));
+              if (fastTracks.length > 0 && state.searchQuery.toLowerCase() === query.toLowerCase()) {
+                state.remoteResults = fastTracks;
+                registerTracks(fastTracks);
+                state.searchingRemote = false;
+                updateSearchResultsDOM();
+              }
+              return fastTracks;
+            })
+            .catch(() => []);
+
+          // FULL-TRACK BACKEND PATH (runs silently in parallel; updates suggestions & fallback if iTunes had 0 hits)
+          const backendPromise = (async () => {
+            if (state.settings.backendUrl) {
+              const base = state.settings.backendUrl.replace(/\/$/, '');
+              const res = await fetch(`${base}/api/search?q=${encodeURIComponent(query)}`, { signal });
+              if (res.ok) {
+                const data = await res.json();
+                state.correctedQuery = data.correctedQuery || '';
+                state.searchSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+                const ytTracks = (data.tracks || []).map(t => ({
+                  id: 'yt_' + t.videoId,
+                  videoId: t.videoId,
+                  title: t.title,
+                  artist: t.artist || 'YouTube Music',
+                  album: t.album || 'YouTube Full Track',
+                  genre: 'Search',
+                  duration: t.duration || 0,
+                  source: 'youtube',
+                  cover: t.thumbnail || `https://i.ytimg.com/vi/${t.videoId}/hqdefault.jpg`
+                }));
+                if (state.searchQuery.toLowerCase() === query.toLowerCase()) {
+                  // Only replace fast results if fast path found nothing (keeps 600x600 clean covers & avoids jarring jumps!)
+                  if (state.remoteResults.length === 0 && ytTracks.length > 0) {
+                    state.remoteResults = ytTracks;
+                    registerTracks(ytTracks);
+                  }
+                  updateSearchResultsDOM();
+                }
+              }
+            } else if (state.settings.ytApiKey) {
+              const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&maxResults=12&q=${encodeURIComponent(query)}&key=${encodeURIComponent(state.settings.ytApiKey)}`;
+              const res = await fetch(url, { signal });
+              if (res.ok) {
+                const data = await res.json();
+                const ytTracks = (data.items || []).map(item => ({
+                  id: 'yt_' + item.id.videoId,
+                  videoId: item.id.videoId,
+                  title: item.snippet.title,
+                  artist: item.snippet.channelTitle.replace(' - Topic', ''),
+                  album: 'YouTube Music',
+                  genre: 'Search',
+                  duration: 0,
+                  source: 'youtube',
+                  cover: item.snippet.thumbnails?.high?.url || `https://i.ytimg.com/vi/${item.id.videoId}/hqdefault.jpg`
+                }));
+                if (ytTracks.length > 0 && state.searchQuery.toLowerCase() === query.toLowerCase()) {
+                  state.remoteResults = ytTracks;
+                  registerTracks(ytTracks);
+                  updateSearchResultsDOM();
+                }
+              }
+            }
+          })().catch(() => {});
+
+          await fastPromise;
+          if (state.remoteResults.length === 0) {
+            await backendPromise;
+          }
         } catch (e) {
           if (e && e.name === 'AbortError') return;
-          showToast('Search request failed — check your internet connection.');
         } finally {
           state.searchingRemote = false;
           updateSearchResultsDOM();
