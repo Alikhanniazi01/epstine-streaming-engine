@@ -3,9 +3,31 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const https = require('https');
 const yts = require('yt-search');
-const fetch = require('node-fetch');
-const spotifyUrlInfo = require('spotify-url-info')(fetch);
+const nativeFetch = globalThis.fetch || require('node-fetch');
+
+function fetchTextHttps(url) {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9'
+      }
+    }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        return resolve(fetchTextHttps(res.headers.location));
+      }
+      if (res.statusCode !== 200) return reject(new Error('HTTP ' + res.statusCode));
+      let body = '';
+      res.on('data', (chunk) => { body += chunk; });
+      res.on('end', () => resolve(body));
+    });
+    req.on('error', reject);
+    req.setTimeout(15000, () => { req.destroy(new Error('Request timed out')); });
+  });
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -85,7 +107,7 @@ app.post('/api/auth/google', async (req, res) => {
   if (!GOOGLE_CLIENT_ID) return res.status(503).json({ error: 'GOOGLE_CLIENT_ID is not configured on the server yet.' });
 
   try {
-    const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
+    const verifyRes = await nativeFetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
     if (!verifyRes.ok) return res.status(401).json({ error: 'Invalid Google token' });
     const info = await verifyRes.json();
 
@@ -206,7 +228,7 @@ app.post('/api/import-spotify', async (req, res) => {
   try {
     // Follow mobile short-links (e.g. spotify.link / spoti.fi) to get canonical open.spotify.com URL
     if (!rawUrl.includes('open.spotify.com/')) {
-      const redir = await fetch(rawUrl, { redirect: 'follow' });
+      const redir = await nativeFetch(rawUrl, { redirect: 'follow' });
       if (redir.url) rawUrl = redir.url;
     }
 
@@ -216,12 +238,8 @@ app.post('/api/import-spotify', async (req, res) => {
     }
     const [, kind, spotifyId] = match;
 
-    // Fetch Spotify public embed page directly (fast, reliable, no API key needed)
-    const embedRes = await fetch(`https://open.spotify.com/embed/${kind}/${spotifyId}`, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
-    });
-    if (!embedRes.ok) throw new Error('Spotify returned HTTP ' + embedRes.status);
-    const html = await embedRes.text();
+    // Fetch Spotify public embed page via native Node https (avoids node-fetch v2 TLS drops)
+    const html = await fetchTextHttps(`https://open.spotify.com/embed/${kind}/${spotifyId}`);
     const ndMatch = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
     if (!ndMatch) throw new Error('Could not parse playlist data — make sure the playlist is set to Public.');
 
