@@ -230,13 +230,12 @@ app.get('/api/search', async (req, res) => {
   }
 
   try {
-    // 1. Run YouTube autocomplete in parallel to catch typos & partial spellings
-    const suggestions = await getYouTubeSuggestions(q);
-    let searchTerm = q;
+    // 1. Run YouTube autocomplete and search IN PARALLEL (zero added latency)
     let correctedQuery = '';
-
-    // If top autocomplete suggestion corrects a typo or expands a partial name, prefer it when raw search is weak
-    let result = await yts(searchTerm);
+    const [suggestions, result] = await Promise.all([
+      getYouTubeSuggestions(q),
+      yts(q)
+    ]);
     let videos = (result.videos || []).filter(v => v.videoId && v.seconds > 20 && v.seconds < 1200);
 
     // Fallback to top YouTube autocomplete suggestion if raw query returned few/no music results
