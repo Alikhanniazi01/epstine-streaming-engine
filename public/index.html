@@ -128,23 +128,30 @@
     .track-row:hover .track-num { display: none; }
     .track-row:hover .track-play-icon { display: inline-flex; }
 
-    /* Collapsible YouTube mini-player dock (visible when streaming YouTube so browsers allow playback) */
+    /* Non-intrusive YouTube audio host (stays out of the way of the Spotify UI) */
     #yt-player-host {
       position: fixed;
-      width: 240px;
-      height: 135px;
-      bottom: 98px;
-      right: 16px;
-      z-index: 40;
-      border-radius: 10px;
+      width: 200px;
+      height: 112px;
+      top: 0;
+      left: 0;
+      opacity: 0.001;
+      pointer-events: none;
+      z-index: -1;
       overflow: hidden;
-      box-shadow: 0 12px 32px rgba(0,0,0,0.75);
-      border: 1px solid rgba(255,255,255,0.15);
-      background: #000;
-      display: none;
     }
-    #yt-player-host.yt-active {
-      display: block;
+    #yt-player-host.yt-visible {
+      opacity: 1;
+      pointer-events: auto;
+      z-index: 45;
+      top: auto;
+      left: auto;
+      bottom: 148px;
+      right: 12px;
+      border-radius: 10px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.8);
+      border: 1px solid rgba(255,255,255,0.18);
+      background: #000;
     }
 
     /* Toast animation */
@@ -350,49 +357,52 @@
   </footer>
 
   <!-- MOBILE FLOATING MINI-PLAYER + BOTTOM NAVIGATION -->
-  <div class="md:hidden fixed bottom-0 inset-x-0 z-30 flex flex-col">
-    <!-- Floating Mini Player -->
-    <div id="mobile-mini-player" class="mx-2 mb-1.5 rounded-lg bg-[#282828] border border-white/10 shadow-2xl overflow-hidden">
-      <div class="flex items-center gap-3 px-2.5 py-2">
+  <div class="md:hidden fixed bottom-0 inset-x-0 z-30 flex flex-col bg-gradient-to-t from-black via-black/95 to-transparent pt-3">
+    <!-- Floating Mini Player (Spotify warm tinted bar) -->
+    <div id="mobile-mini-player" class="mx-2 mb-1 rounded-md bg-[#48231e] shadow-2xl overflow-hidden transition-colors duration-300">
+      <div class="flex items-center gap-2.5 px-2.5 py-2">
         <div id="mob-mini-open" class="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer">
-          <div class="w-10 h-10 rounded bg-[#181818] overflow-hidden shrink-0 flex items-center justify-center">
+          <div class="w-10 h-10 rounded-[4px] bg-[#181818] overflow-hidden shrink-0 flex items-center justify-center shadow">
             <img id="mob-player-art" src="" alt="" onerror="this.classList.add('hidden');document.getElementById('mob-player-art-icon').classList.remove('hidden')" class="w-full h-full object-cover hidden" />
             <i id="mob-player-art-icon" data-lucide="music" class="w-5 h-5 text-[#727272]"></i>
           </div>
           <div class="min-w-0">
-            <div id="mob-player-title" class="text-xs font-bold text-white truncate">Tap any song to play</div>
-            <div id="mob-player-artist" class="text-[11px] text-[#b3b3b3] truncate">Spotify Cloud Player</div>
+            <div id="mob-player-title" class="text-[13px] font-bold text-white truncate leading-snug">Tap any song to play</div>
+            <div id="mob-player-artist" class="text-[12px] text-white/70 truncate leading-tight">Spotify</div>
           </div>
         </div>
-        <button id="mob-like-btn" class="p-2 text-[#b3b3b3] hover:text-white">
+        <button id="mob-video-toggle" class="p-1.5 text-white/75 hover:text-white" title="Toggle Video">
+          <i data-lucide="monitor-speaker" class="w-5 h-5"></i>
+        </button>
+        <button id="mob-like-btn" class="p-1.5 text-white/75 hover:text-white" title="Like">
           <i data-lucide="heart" class="w-5 h-5"></i>
         </button>
-        <button id="mob-play-btn" class="p-2 text-white">
-          <i id="mob-play-icon" data-lucide="play" class="w-5 h-5 fill-current"></i>
+        <button id="mob-play-btn" class="p-1.5 text-white">
+          <i id="mob-play-icon" data-lucide="play" class="w-6 h-6 fill-current"></i>
         </button>
       </div>
-      <div class="h-0.5 w-full bg-white/15">
+      <div class="h-[2px] w-full bg-white/20">
         <div id="mob-mini-progress" class="h-full bg-white w-0 transition-all duration-200"></div>
       </div>
     </div>
 
     <!-- Native-Style Bottom Tab Bar -->
-    <nav class="bg-gradient-to-t from-black via-black/95 to-black/85 backdrop-blur-md border-t border-white/5 grid grid-cols-4 h-16 px-2">
+    <nav class="grid grid-cols-4 h-[58px] px-1">
       <button data-mob-nav="home" class="mob-nav-btn flex flex-col items-center justify-center gap-1 text-white">
-        <i data-lucide="home" class="w-5 h-5"></i>
+        <i data-lucide="home" class="w-[22px] h-[22px]"></i>
         <span class="text-[10px] font-medium">Home</span>
       </button>
       <button data-mob-nav="search" class="mob-nav-btn flex flex-col items-center justify-center gap-1 text-[#b3b3b3]">
-        <i data-lucide="search" class="w-5 h-5"></i>
+        <i data-lucide="search" class="w-[22px] h-[22px]"></i>
         <span class="text-[10px] font-medium">Search</span>
       </button>
       <button data-mob-nav="library" class="mob-nav-btn flex flex-col items-center justify-center gap-1 text-[#b3b3b3]">
-        <i data-lucide="library" class="w-5 h-5"></i>
+        <i data-lucide="library" class="w-[22px] h-[22px]"></i>
         <span class="text-[10px] font-medium">Your Library</span>
       </button>
-      <button data-mob-nav="import" class="mob-nav-btn flex flex-col items-center justify-center gap-1 text-[#1DB954]">
-        <i data-lucide="link-2" class="w-5 h-5"></i>
-        <span class="text-[10px] font-semibold">Import</span>
+      <button data-mob-nav="import" class="mob-nav-btn flex flex-col items-center justify-center gap-1 text-[#b3b3b3]">
+        <i data-lucide="plus" class="w-[22px] h-[22px]"></i>
+        <span class="text-[10px] font-medium">Create</span>
       </button>
     </nav>
   </div>
@@ -1112,7 +1122,7 @@
 
         // Prefer direct HTTPS audio stream (iTunes / Audius / Local) for 100% reliable instant playback
         if (track.source === 'local' && track.blobUrl) {
-          if (ytHost) ytHost.classList.remove('yt-active');
+          if (ytHost) ytHost.classList.remove('yt-visible');
           if (ytReady && ytPlayer && typeof ytPlayer.pauseVideo === 'function') ytPlayer.pauseVideo();
           initLocalEQ();
           if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
@@ -1120,7 +1130,7 @@
           localAudio.volume = state.muted ? 0 : state.volume / 100;
           localAudio.play().catch(() => {});
         } else if (track.streamUrl) {
-          if (ytHost) ytHost.classList.remove('yt-active');
+          if (ytHost) ytHost.classList.remove('yt-visible');
           if (ytReady && ytPlayer && typeof ytPlayer.pauseVideo === 'function') ytPlayer.pauseVideo();
           localAudio.src = track.streamUrl;
           localAudio.volume = state.muted ? 0 : state.volume / 100;
@@ -1133,7 +1143,7 @@
             showToast('Loading audio stream...');
             const resolved = await resolveStreamForTrack(track);
             if (resolved) {
-              if (ytHost) ytHost.classList.remove('yt-active');
+              if (ytHost) ytHost.classList.remove('yt-visible');
               localAudio.src = resolved;
               localAudio.volume = state.muted ? 0 : state.volume / 100;
               localAudio.play().catch(() => {});
@@ -1147,7 +1157,7 @@
           }
           // Fall back to visible YouTube mini-player dock
           localAudio.pause();
-          if (ytHost) ytHost.classList.add('yt-active');
+          // Keep YouTube audio clean & unobtrusive unless user toggles video
           if (ytReady && ytPlayer) {
             ytPlayer.loadVideoById(track.videoId);
             ytPlayer.setVolume(state.muted ? 0 : state.volume);
@@ -1905,58 +1915,51 @@
         const wasInlineSearchFocused = document.activeElement && document.activeElement.id === 'inline-search-input';
         const selStart = wasInlineSearchFocused ? document.activeElement.selectionStart : null;
 
-        // 1. HOME VIEW
+        // 1. HOME VIEW (Authentic Spotify Mobile & Desktop layout)
         if (state.view === 'home') {
           const filteredTracks = state.homeFilter === 'all'
             ? state.tracks
             : state.tracks.filter(t => t.genre.toLowerCase().includes(state.homeFilter));
-          const artists = [...new Set(state.tracks.map(t => t.artist.split(',')[0].trim()))].slice(0, 6);
+          const artists = [...new Set(state.tracks.map(t => t.artist.split(',')[0].trim()))].slice(0, 8);
           const recentTracks = state.recentIds.map(getTrack).filter(Boolean);
+          const quickPlaylists = state.playlists.slice(0, 5);
 
           vp.innerHTML = `
-            <div class="bg-gradient-to-b from-[#1f4d36]/70 via-[#121212] to-[#121212] px-4 md:px-6 pt-5 pb-8">
-              <!-- Mobile Top Header -->
-              <div class="flex md:hidden items-center justify-between mb-4">
-                <div class="flex items-center gap-2">
-                  <svg viewBox="0 0 24 24" class="w-7 h-7 fill-[#1DB954]"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.72 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
-                  <span class="text-lg font-extrabold tracking-tight">${getGreeting()}</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <button id="mob-upload-btn" class="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white" title="Upload MP3">
-                    <i data-lucide="upload" class="w-4 h-4"></i>
-                  </button>
-                  <button id="mob-settings-btn" class="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white" title="Settings">
-                    <i data-lucide="settings" class="w-4 h-4"></i>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Filter Chips -->
+            <div class="bg-[#121212] px-4 md:px-6 pt-4 md:pt-5 pb-10">
+              <!-- Single-Row Spotify Top Bar (Avatar + Filter Pills) -->
               <div class="flex items-center gap-2 mb-5 overflow-x-auto no-scrollbar">
+                <button id="mob-settings-btn" class="md:hidden w-8 h-8 rounded-full bg-[#3b82f6] text-black font-extrabold text-sm flex items-center justify-center shrink-0" title="Settings & Cloud">
+                  A
+                </button>
                 ${[
                   { id: 'all', label: 'All' },
-                  { id: 'pop', label: 'Pop' },
+                  { id: 'pop', label: 'Music' },
                   { id: 'south asian', label: 'South Asian' },
-                  { id: 'hip-hop', label: 'Hip-Hop' },
-                  { id: 'punjabi', label: 'Punjabi' }
+                  { id: 'punjabi', label: 'Punjabi' },
+                  { id: 'hip-hop', label: 'Hip-Hop' }
                 ].map(f => `
-                  <button data-home-filter="${f.id}" class="px-3.5 py-1.5 rounded-full text-xs font-semibold shrink-0 transition ${state.homeFilter === f.id ? 'bg-[#1DB954] text-black' : 'bg-white/10 text-white hover:bg-white/20'}">${f.label}</button>
+                  <button data-home-filter="${f.id}" class="px-4 py-1.5 rounded-full text-[13px] font-medium shrink-0 transition ${state.homeFilter === f.id ? 'bg-[#1ED760] text-black font-semibold' : 'bg-[#2a2a2a] text-white hover:bg-[#333]'}">${f.label}</button>
                 `).join('')}
+                <button id="mob-upload-btn" class="md:hidden ml-auto px-3 py-1.5 rounded-full bg-[#2a2a2a] text-white text-xs font-medium shrink-0">Local MP3</button>
               </div>
 
-              <h1 class="hidden md:block text-2xl font-extrabold tracking-tight mb-4">${getGreeting()}</h1>
-
-              <!-- 6-Tile Quick Picks Grid -->
-              <div class="grid grid-cols-2 2xl:grid-cols-3 gap-2.5 md:gap-3 mb-7">
-                ${state.playlists.slice(0, 6).map(pl => {
+              <!-- 6-Tile Compact Quick Picks Grid (Liked Songs #1 + 5 Playlists, sharp Spotify cards) -->
+              <div class="grid grid-cols-2 2xl:grid-cols-3 gap-2 md:gap-3 mb-7">
+                <div data-nav="liked" class="quick-card group flex items-center bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-[4px] overflow-hidden cursor-pointer transition relative h-14">
+                  <div class="w-14 h-14 bg-gradient-to-br from-[#450af5] via-[#6d4aff] to-[#c4efd9] shrink-0 flex items-center justify-center">
+                    <i data-lucide="heart" class="w-5 h-5 text-white fill-white"></i>
+                  </div>
+                  <span class="px-2.5 text-[13px] font-bold text-white line-clamp-2 leading-tight flex-1">Liked Songs</span>
+                </div>
+                ${quickPlaylists.map(pl => {
                   const first = getTrack(pl.trackIds[0]);
                   return `
-                    <div data-nav="playlist" data-param="${esc(pl.id)}" class="quick-card group flex items-center bg-white/10 hover:bg-white/20 rounded-md overflow-hidden cursor-pointer transition relative">
-                      <div class="w-14 h-14 md:w-16 md:h-16 bg-gradient-to-br ${pl.gradient} shrink-0 flex items-center justify-center overflow-hidden relative">
-                        ${renderCoverImg(first ? first.cover : '', pl.name, 'disc-3', 'w-6 h-6')}
+                    <div data-nav="playlist" data-param="${esc(pl.id)}" class="quick-card group flex items-center bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-[4px] overflow-hidden cursor-pointer transition relative h-14">
+                      <div class="w-14 h-14 bg-gradient-to-br ${pl.gradient} shrink-0 flex items-center justify-center overflow-hidden relative">
+                        ${renderCoverImg(first ? first.cover : '', pl.name, 'disc-3', 'w-5 h-5')}
                       </div>
-                      <span class="px-3 pr-10 text-xs md:text-sm font-bold text-white line-clamp-2 leading-tight flex-1">${esc(pl.name)}</span>
-                      <button data-play-pl="${esc(pl.id)}" class="quick-play-btn absolute right-2.5 w-10 h-10 rounded-full bg-[#1DB954] hover:bg-[#1ED760] hover:scale-105 text-black flex items-center justify-center shadow-lg">
+                      <span class="px-2.5 text-[13px] font-bold text-white line-clamp-2 leading-tight flex-1">${esc(pl.name)}</span>
+                      <button data-play-pl="${esc(pl.id)}" class="quick-play-btn hidden md:flex absolute right-2 w-9 h-9 rounded-full bg-[#1DB954] hover:bg-[#1ED760] hover:scale-105 text-black items-center justify-center shadow-lg">
                         <i data-lucide="play" class="w-4 h-4 fill-current ml-0.5"></i>
                       </button>
                     </div>
@@ -1964,78 +1967,88 @@
                 }).join('')}
               </div>
 
-              <!-- Import Spotify Playlist Promo Banner -->
-              <div class="mb-8 rounded-xl bg-gradient-to-r from-[#1DB954]/20 via-[#181818] to-[#181818] border border-[#1DB954]/30 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
-                  <div class="w-11 h-11 rounded-full bg-[#1DB954] text-black flex items-center justify-center shrink-0">
-                    <i data-lucide="link-2" class="w-5 h-5"></i>
-                  </div>
-                  <div>
-                    <div class="text-sm font-bold text-white">Bring your Spotify Playlists</div>
-                    <div class="text-xs text-[#b3b3b3]">Paste any public Spotify playlist link to auto-import and stream free 24/7.</div>
-                  </div>
-                </div>
-                <button id="banner-import-btn" class="px-4 py-2 rounded-full bg-[#1DB954] hover:bg-[#1ED760] text-black font-bold text-xs shrink-0 transition self-start sm:self-center">
-                  Import Playlist Link
-                </button>
-              </div>
-
-              <!-- Recently Played (only shown after user actually plays tracks) -->
-              ${recentTracks.length > 0 ? `
-                <section class="mb-8">
-                  <h2 class="text-lg md:text-xl font-bold tracking-tight mb-3.5">Jump back in</h2>
-                  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-                    ${recentTracks.slice(0, 5).map(t => `
-                      <div data-play-track="${esc(t.id)}" class="sp-card bg-[#181818] hover:bg-[#282828] p-3 rounded-lg cursor-pointer transition">
-                        <div class="relative aspect-square rounded-md overflow-hidden bg-[#242424] mb-3 shadow-lg">
-                          ${renderCoverImg(t.cover, t.title, "music", "w-10 h-10")}
-                          <button class="card-play-btn absolute bottom-2 right-2 w-11 h-11 rounded-full bg-[#1DB954] hover:bg-[#1ED760] text-black flex items-center justify-center shadow-xl">
+              <!-- Your top mixes (Horizontal Borderless Carousel like real Spotify) -->
+              <section class="mb-7">
+                <h2 class="text-[22px] font-extrabold tracking-tight text-white mb-3.5">Your top mixes</h2>
+                <div class="flex gap-3.5 overflow-x-auto no-scrollbar pb-1">
+                  ${state.playlists.map(pl => {
+                    const first = getTrack(pl.trackIds[0]);
+                    const subArtists = pl.trackIds.slice(0, 3).map(id => getTrack(id)?.artist.split(',')[0]).filter(Boolean).join(', ');
+                    return `
+                      <div data-nav="playlist" data-param="${esc(pl.id)}" class="sp-card w-[154px] md:w-[172px] shrink-0 cursor-pointer group">
+                        <div class="relative w-[154px] h-[154px] md:w-[172px] md:h-[172px] rounded-[4px] overflow-hidden bg-[#242424] mb-2">
+                          ${renderCoverImg(first ? first.cover : '', pl.name, 'disc-3', 'w-10 h-10')}
+                          <div class="absolute inset-x-0 bottom-2.5 px-2.5">
+                            <div class="inline-block bg-black/75 backdrop-blur-sm border-l-4 px-2 py-0.5 text-xs font-extrabold text-white truncate max-w-full" style="border-color:${pl.accent || '#1DB954'}">${esc(pl.name)}</div>
+                          </div>
+                          <button data-play-pl="${esc(pl.id)}" class="card-play-btn hidden md:flex absolute bottom-2 right-2 w-11 h-11 rounded-full bg-[#1DB954] hover:bg-[#1ED760] text-black items-center justify-center shadow-xl">
                             <i data-lucide="play" class="w-5 h-5 fill-current ml-0.5"></i>
                           </button>
                         </div>
-                        <div class="text-sm font-bold text-white truncate">${esc(t.title)}</div>
-                        <div class="text-xs text-[#b3b3b3] truncate mt-0.5">${esc(t.artist)}</div>
+                        <div class="text-[12px] text-[#b3b3b3] line-clamp-2 leading-snug">${esc(subArtists || pl.description)}</div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </section>
+
+              <!-- Jump back in (Horizontal Borderless Carousel) -->
+              ${recentTracks.length > 0 ? `
+                <section class="mb-7">
+                  <h2 class="text-[22px] font-extrabold tracking-tight text-white mb-3.5">Jump back in</h2>
+                  <div class="flex gap-3.5 overflow-x-auto no-scrollbar pb-1">
+                    ${recentTracks.slice(0, 10).map(t => `
+                      <div data-play-track="${esc(t.id)}" class="sp-card w-[154px] md:w-[172px] shrink-0 cursor-pointer">
+                        <div class="relative w-[154px] h-[154px] md:w-[172px] md:h-[172px] rounded-[4px] overflow-hidden bg-[#242424] mb-2">
+                          ${renderCoverImg(t.cover, t.title, "music", "w-10 h-10")}
+                          <button class="card-play-btn hidden md:flex absolute bottom-2 right-2 w-11 h-11 rounded-full bg-[#1DB954] hover:bg-[#1ED760] text-black items-center justify-center shadow-xl">
+                            <i data-lucide="play" class="w-5 h-5 fill-current ml-0.5"></i>
+                          </button>
+                        </div>
+                        <div class="text-[11px] text-[#b3b3b3] leading-tight">Single</div>
+                        <div class="text-[13px] font-bold text-white truncate mt-0.5">${esc(t.title)}</div>
+                        <div class="text-[12px] text-[#b3b3b3] truncate">${esc(t.artist)}</div>
                       </div>
                     `).join('')}
                   </div>
                 </section>
               ` : ''}
 
-              <!-- Global Catalog Tracks -->
-              <section class="mb-8">
+              <!-- Trending Worldwide (Horizontal Borderless Carousel) -->
+              <section class="mb-7">
                 <div class="flex items-center justify-between mb-3.5">
-                  <h2 class="text-lg md:text-xl font-bold tracking-tight">Trending Worldwide</h2>
-                  <button data-nav="search" class="text-xs font-bold text-[#b3b3b3] hover:underline">Search all music</button>
+                  <h2 class="text-[22px] font-extrabold tracking-tight text-white">Trending Worldwide</h2>
+                  <button data-nav="search" class="text-xs font-bold text-[#b3b3b3] hover:underline">Show all</button>
                 </div>
-                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-                  ${filteredTracks.slice(0, 10).map(t => `
-                    <div data-play-track="${esc(t.id)}" class="sp-card bg-[#181818] hover:bg-[#282828] p-3 rounded-lg cursor-pointer transition">
-                      <div class="relative aspect-square rounded-md overflow-hidden bg-[#242424] mb-3 shadow-lg">
+                <div class="flex gap-3.5 overflow-x-auto no-scrollbar pb-1">
+                  ${filteredTracks.slice(0, 12).map(t => `
+                    <div data-play-track="${esc(t.id)}" class="sp-card w-[154px] md:w-[172px] shrink-0 cursor-pointer">
+                      <div class="relative w-[154px] h-[154px] md:w-[172px] md:h-[172px] rounded-[4px] overflow-hidden bg-[#242424] mb-2">
                         ${renderCoverImg(t.cover, t.title, "music", "w-10 h-10")}
-                        <button class="card-play-btn absolute bottom-2 right-2 w-11 h-11 rounded-full bg-[#1DB954] hover:bg-[#1ED760] text-black flex items-center justify-center shadow-xl">
+                        <button class="card-play-btn hidden md:flex absolute bottom-2 right-2 w-11 h-11 rounded-full bg-[#1DB954] hover:bg-[#1ED760] text-black items-center justify-center shadow-xl">
                           <i data-lucide="play" class="w-5 h-5 fill-current ml-0.5"></i>
                         </button>
                       </div>
-                      <div class="text-sm font-bold text-white truncate">${esc(t.title)}</div>
-                      <div class="text-xs text-[#b3b3b3] truncate mt-0.5">${esc(t.artist)}</div>
+                      <div class="text-[13px] font-bold text-white truncate">${esc(t.title)}</div>
+                      <div class="text-[12px] text-[#b3b3b3] truncate mt-0.5">${esc(t.artist)}</div>
                     </div>
                   `).join('')}
                 </div>
               </section>
 
-              <!-- Top Artists -->
+              <!-- Popular Artists (Horizontal Circular Carousel) -->
               <section>
-                <h2 class="text-lg md:text-xl font-bold tracking-tight mb-3.5">Popular Artists</h2>
-                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+                <h2 class="text-[22px] font-extrabold tracking-tight text-white mb-3.5">Popular artists</h2>
+                <div class="flex gap-4 overflow-x-auto no-scrollbar pb-1">
                   ${artists.map(artist => {
                     const sample = state.tracks.find(t => t.artist.includes(artist));
                     return `
-                      <div data-nav="artist" data-param="${esc(artist)}" class="sp-card bg-[#181818] hover:bg-[#282828] p-3 rounded-lg cursor-pointer transition text-center">
-                        <div class="relative aspect-square rounded-full overflow-hidden bg-[#242424] mb-3 shadow-lg">
+                      <div data-nav="artist" data-param="${esc(artist)}" class="sp-card w-[132px] md:w-[152px] shrink-0 cursor-pointer text-center">
+                        <div class="relative w-[132px] h-[132px] md:w-[152px] md:h-[152px] rounded-full overflow-hidden bg-[#242424] mb-2">
                           ${renderCoverImg(sample ? sample.cover : "", artist, "user", "w-10 h-10")}
                         </div>
-                        <div class="text-sm font-bold text-white truncate">${esc(artist)}</div>
-                        <div class="text-xs text-[#b3b3b3] mt-0.5">Artist</div>
+                        <div class="text-[13px] font-bold text-white truncate">${esc(artist)}</div>
+                        <div class="text-[11px] text-[#b3b3b3] mt-0.5">Artist</div>
                       </div>
                     `;
                   }).join('')}
@@ -2281,8 +2294,6 @@
       }
 
       function bindDynamicMainButtons() {
-        const bImp = document.getElementById('banner-import-btn');
-        if (bImp) bImp.addEventListener('click', () => openModal('modal-import'));
         const mSet = document.getElementById('mob-settings-btn');
         if (mSet) mSet.addEventListener('click', () => openModal('modal-settings'));
         const mUp = document.getElementById('mob-upload-btn');
@@ -2399,7 +2410,14 @@
         document.getElementById('desk-player-title').textContent = title;
         document.getElementById('desk-player-artist').textContent = artist;
         document.getElementById('mob-player-title').textContent = cur ? cur.title : 'Tap any song to play';
-        document.getElementById('mob-player-artist').textContent = cur ? cur.artist : 'Spotify Cloud Player';
+        document.getElementById('mob-player-artist').textContent = cur ? cur.artist : 'Spotify';
+        const miniColors = ['#48231e', '#1e3a4c', '#3b2448', '#1d3c2e', '#4a2e1b', '#282828'];
+        const miniEl = document.getElementById('mobile-mini-player');
+        if (miniEl && cur) {
+          let h = 0;
+          for (let i = 0; i < cur.title.length; i++) h = (h * 31 + cur.title.charCodeAt(i)) % miniColors.length;
+          miniEl.style.backgroundColor = miniColors[Math.abs(h) % miniColors.length];
+        }
         document.getElementById('full-player-title').textContent = title;
         document.getElementById('full-player-artist').textContent = artist;
         document.getElementById('full-player-source').textContent = cur ? (cur.album || 'Spotify Cloud') : 'Spotify Catalog';
@@ -2659,6 +2677,16 @@
       // Player Controls (Desktop + Mobile + Full Sheet)
       document.getElementById('btn-play-pause').addEventListener('click', togglePlayPause);
       document.getElementById('mob-play-btn').addEventListener('click', togglePlayPause);
+      const mobVidBtn = document.getElementById('mob-video-toggle');
+      if (mobVidBtn) {
+        mobVidBtn.addEventListener('click', () => {
+          const ytHost = document.getElementById('yt-player-host');
+          if (ytHost) {
+            ytHost.classList.toggle('yt-visible');
+            showToast(ytHost.classList.contains('yt-visible') ? 'Video overlay shown' : 'Audio-only mode');
+          }
+        });
+      }
       document.getElementById('full-btn-play').addEventListener('click', togglePlayPause);
       document.getElementById('btn-next').addEventListener('click', playNext);
       document.getElementById('full-btn-next').addEventListener('click', playNext);
