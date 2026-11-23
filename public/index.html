@@ -223,6 +223,11 @@
         <i data-lucide="upload" class="w-3.5 h-3.5"></i>
         <span class="hidden lg:inline">Local Files</span>
       </button>
+      <button id="top-account-btn" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1f1f1f] hover:bg-[#2a2a2a] text-white text-xs font-bold transition" title="Google Account & Cloud Sync">
+        <img id="desk-user-avatar" src="" alt="" class="w-6 h-6 rounded-full object-cover hidden" />
+        <span id="desk-user-initial" class="w-6 h-6 rounded-full bg-[#3b82f6] text-black flex items-center justify-center text-[11px] font-extrabold">G</span>
+        <span id="desk-user-label">Sign in</span>
+      </button>
       <button id="top-settings-btn" class="w-9 h-9 rounded-full bg-[#1f1f1f] hover:bg-[#2a2a2a] flex items-center justify-center text-[#b3b3b3] hover:text-white transition relative" title="Cloud & API Settings">
         <i data-lucide="settings" class="w-4 h-4"></i>
         <span id="cloud-dot" class="w-2 h-2 rounded-full bg-amber-400 absolute top-1.5 right-1.5" title="Standalone Mode"></span>
@@ -642,6 +647,48 @@
       </div>
       <div id="add-to-pl-list" class="p-3 space-y-1 max-h-72 overflow-y-auto"></div>
     </div>
+
+    <!-- 6. GOOGLE ACCOUNT & CLOUD SYNC MODAL -->
+    <div id="modal-account" class="modal-panel hidden w-full max-w-md bg-[#1e1e1e] rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-white/10">
+        <h3 class="text-base font-bold text-white">Account & Cloud Sync</h3>
+        <button class="modal-close-btn w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-[#b3b3b3] hover:text-white">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="p-5 space-y-4">
+        <div id="account-signed-in" class="hidden space-y-4">
+          <div class="flex items-center gap-3.5 p-3.5 rounded-xl bg-[#121212] border border-white/10">
+            <img id="acc-avatar" src="" alt="" class="w-12 h-12 rounded-full object-cover bg-[#282828]" />
+            <div class="min-w-0 flex-1">
+              <div id="acc-name" class="text-sm font-bold text-white truncate"></div>
+              <div id="acc-email" class="text-xs text-[#b3b3b3] truncate"></div>
+              <div class="inline-flex items-center gap-1 mt-1 text-[11px] font-semibold text-[#1DB954]">
+                <i data-lucide="cloud-check" class="w-3.5 h-3.5"></i> Playlists & preferences synced
+              </div>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button id="acc-sync-now-btn" class="flex-1 py-2.5 rounded-full bg-[#1DB954] hover:bg-[#1ED760] text-black font-bold text-xs transition">Sync Now</button>
+            <button id="acc-signout-btn" class="px-4 py-2.5 rounded-full bg-[#282828] hover:bg-red-500/20 hover:text-red-300 text-white font-bold text-xs transition">Sign Out</button>
+          </div>
+        </div>
+
+        <div id="account-signed-out" class="space-y-4">
+          <p class="text-xs text-[#b3b3b3] leading-relaxed">Sign in with Google so your Liked Songs, custom playlists, EQ presets, and listening history stay saved under your own profile across devices.</p>
+          <div id="google-signin-btn-wrap" class="flex justify-center py-2"></div>
+          <div id="google-setup-hint" class="hidden p-3.5 rounded-xl bg-[#121212] border border-white/10 text-xs text-[#b3b3b3] space-y-1.5">
+            <div class="font-bold text-white">One-time Google Sign-In activation</div>
+            <div>Add <code class="text-[#1DB954]">GOOGLE_CLIENT_ID</code> in your Render Environment Variables to enable the live Google Sign-In button here.</div>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-white/10 flex items-center justify-between">
+          <span class="text-xs text-[#b3b3b3]">Cloud URL, YouTube API & backup</span>
+          <button id="acc-open-settings" class="text-xs font-bold text-[#1DB954] hover:underline">Open Settings</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- TOAST CONTAINER -->
@@ -791,6 +838,9 @@
           backendUrl: '',
           ytApiKey: ''
         },
+        authToken: '',
+        user: null,
+        googleClientId: '',
         pendingAddTrackId: null
       };
 
@@ -822,23 +872,56 @@
             state.settings = { ...state.settings, ...saved.settings };
           }
           if (typeof saved.volume === 'number') state.volume = saved.volume;
+          if (saved.authToken) state.authToken = saved.authToken;
+          if (saved.user) state.user = saved.user;
+          if (Array.isArray(saved.eqGains)) state.eqGains = saved.eqGains;
         } catch (e) {}
+      }
+
+      let cloudSyncTimer = null;
+      function buildSyncPayload() {
+        const customPlaylists = state.playlists.filter(p => !p.editorial);
+        const starterIds = new Set(STARTER_TRACKS.map(t => t.id));
+        const extraTracks = state.tracks.filter(t => !starterIds.has(t.id) && t.source !== 'local');
+        return {
+          likedIds: state.likedIds,
+          recentIds: state.recentIds.slice(0, 30),
+          customPlaylists,
+          extraTracks: extraTracks.slice(0, 300),
+          volume: state.volume,
+          eqGains: state.eqGains
+        };
+      }
+
+      function scheduleCloudSync() {
+        if (!state.authToken || !state.settings.backendUrl) return;
+        clearTimeout(cloudSyncTimer);
+        cloudSyncTimer = setTimeout(async () => {
+          try {
+            const base = state.settings.backendUrl.replace(/\/$/, '');
+            await fetch(`${base}/api/user/data`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + state.authToken
+              },
+              body: JSON.stringify({ data: buildSyncPayload() })
+            });
+          } catch (e) {}
+        }, 800);
       }
 
       function saveState() {
         try {
-          const customPlaylists = state.playlists.filter(p => !p.editorial);
-          const starterIds = new Set(STARTER_TRACKS.map(t => t.id));
-          const extraTracks = state.tracks.filter(t => !starterIds.has(t.id) && t.source !== 'local');
+          const payload = buildSyncPayload();
           localStorage.setItem(STORAGE_KEY, JSON.stringify({
-            likedIds: state.likedIds,
-            recentIds: state.recentIds.slice(0, 20),
-            customPlaylists,
-            extraTracks: extraTracks.slice(0, 200),
+            ...payload,
             settings: state.settings,
-            volume: state.volume
+            authToken: state.authToken,
+            user: state.user
           }));
         } catch (e) {}
+        scheduleCloudSync();
       }
 
       loadState();
@@ -1928,8 +2011,10 @@
             <div class="bg-[#121212] px-4 md:px-6 pt-4 md:pt-5 pb-10">
               <!-- Single-Row Spotify Top Bar (Avatar + Filter Pills) -->
               <div class="flex items-center gap-2 mb-5 overflow-x-auto no-scrollbar">
-                <button id="mob-settings-btn" class="md:hidden w-8 h-8 rounded-full bg-[#3b82f6] text-black font-extrabold text-sm flex items-center justify-center shrink-0" title="Settings & Cloud">
-                  A
+                <button id="mob-settings-btn" class="md:hidden w-8 h-8 rounded-full bg-[#3b82f6] text-black font-extrabold text-sm flex items-center justify-center shrink-0 overflow-hidden" title="Account & Settings">
+                  ${state.user && state.user.picture
+                    ? `<img src="${esc(state.user.picture)}" alt="" class="w-full h-full object-cover" />`
+                    : `${esc((state.user?.name || 'G').charAt(0).toUpperCase())}`}
                 </button>
                 ${[
                   { id: 'all', label: 'All' },
@@ -2295,7 +2380,7 @@
 
       function bindDynamicMainButtons() {
         const mSet = document.getElementById('mob-settings-btn');
-        if (mSet) mSet.addEventListener('click', () => openModal('modal-settings'));
+        if (mSet) mSet.addEventListener('click', () => openModal('modal-account'));
         const mUp = document.getElementById('mob-upload-btn');
         if (mUp) mUp.addEventListener('click', () => document.getElementById('local-file-input').click());
       }
@@ -2868,9 +2953,172 @@
       renderSidebar();
       renderMain();
       renderRightSidebar();
+      function applyCloudUserData(data) {
+        if (!data || typeof data !== 'object') return;
+        if (Array.isArray(data.likedIds)) state.likedIds = data.likedIds;
+        if (Array.isArray(data.recentIds)) state.recentIds = data.recentIds;
+        if (Array.isArray(data.customPlaylists)) {
+          state.playlists = [...DEFAULT_PLAYLISTS, ...data.customPlaylists];
+        }
+        if (Array.isArray(data.extraTracks)) {
+          const ids = new Set(state.tracks.map(t => t.id));
+          data.extraTracks.forEach(t => {
+            if (!ids.has(t.id) && t.source !== 'local') state.tracks.push(t);
+          });
+        }
+        if (typeof data.volume === 'number') setVolume(data.volume);
+        if (Array.isArray(data.eqGains)) {
+          state.eqGains = data.eqGains;
+          buildEQSliders();
+        }
+        renderSidebar();
+        renderMain();
+        updatePlayerUI();
+      }
+
+      function updateAccountUI() {
+        const signedIn = !!state.user;
+        const dImg = document.getElementById('desk-user-avatar');
+        const dInit = document.getElementById('desk-user-initial');
+        const dLbl = document.getElementById('desk-user-label');
+        if (signedIn) {
+          if (state.user.picture) {
+            dImg.src = state.user.picture;
+            dImg.classList.remove('hidden');
+            dInit.classList.add('hidden');
+          } else {
+            dImg.classList.add('hidden');
+            dInit.classList.remove('hidden');
+            dInit.textContent = (state.user.name || 'U').charAt(0).toUpperCase();
+          }
+          dLbl.textContent = state.user.name.split(' ')[0];
+          document.getElementById('acc-avatar').src = state.user.picture || '';
+          document.getElementById('acc-name').textContent = state.user.name || 'Listener';
+          document.getElementById('acc-email').textContent = state.user.email || '';
+        } else {
+          dImg.classList.add('hidden');
+          dInit.classList.remove('hidden');
+          dInit.textContent = 'G';
+          dLbl.textContent = 'Sign in';
+        }
+        document.getElementById('account-signed-in').classList.toggle('hidden', !signedIn);
+        document.getElementById('account-signed-out').classList.toggle('hidden', signedIn);
+        renderMain();
+      }
+
+      async function handleGoogleCredentialResponse(response) {
+        if (!response || !response.credential || !state.settings.backendUrl) return;
+        try {
+          const base = state.settings.backendUrl.replace(/\/$/, '');
+          const res = await fetch(`${base}/api/auth/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential: response.credential })
+          });
+          const result = await res.json();
+          if (!res.ok) throw new Error(result.error || 'Sign-in failed');
+          state.authToken = result.token;
+          state.user = result.user;
+          if (result.data) applyCloudUserData(result.data);
+          saveState();
+          updateAccountUI();
+          closeModals();
+          showToast(`Signed in as ${state.user.name}`);
+        } catch (err) {
+          showToast('Google Sign-In error: ' + err.message);
+        }
+      }
+
+      async function initGoogleAuth() {
+        if (!state.settings.backendUrl) {
+          document.getElementById('google-setup-hint').classList.remove('hidden');
+          return;
+        }
+        const base = state.settings.backendUrl.replace(/\/$/, '');
+        try {
+          const cfgRes = await fetch(`${base}/api/auth/config`);
+          if (cfgRes.ok) {
+            const cfg = await cfgRes.json();
+            state.googleClientId = cfg.googleClientId || '';
+          }
+        } catch (e) {}
+
+        if (state.authToken) {
+          try {
+            const meRes = await fetch(`${base}/api/user/data`, {
+              headers: { 'Authorization': 'Bearer ' + state.authToken }
+            });
+            if (meRes.ok) {
+              const me = await meRes.json();
+              if (me.user) state.user = me.user;
+              if (me.data) applyCloudUserData(me.data);
+              updateAccountUI();
+            } else if (meRes.status === 401) {
+              state.authToken = '';
+              state.user = null;
+              saveState();
+              updateAccountUI();
+            }
+          } catch (e) {}
+        }
+
+        if (!state.googleClientId) {
+          document.getElementById('google-setup-hint').classList.remove('hidden');
+          return;
+        }
+        document.getElementById('google-setup-hint').classList.add('hidden');
+
+        // Load official Google Identity Services script
+        const renderGsi = () => {
+          if (!window.google || !window.google.accounts || !window.google.accounts.id) return;
+          window.google.accounts.id.initialize({
+            client_id: state.googleClientId,
+            callback: handleGoogleCredentialResponse
+          });
+          const wrap = document.getElementById('google-signin-btn-wrap');
+          if (wrap) {
+            wrap.innerHTML = '';
+            window.google.accounts.id.renderButton(wrap, {
+              theme: 'filled_black',
+              size: 'large',
+              shape: 'pill',
+              text: 'continue_with',
+              width: 280
+            });
+          }
+        };
+
+        if (window.google && window.google.accounts) {
+          renderGsi();
+        } else {
+          const sTag = document.createElement('script');
+          sTag.src = 'https://accounts.google.com/gsi/client';
+          sTag.async = true;
+          sTag.defer = true;
+          sTag.onload = renderGsi;
+          document.head.appendChild(sTag);
+        }
+      }
+
+      document.getElementById('top-account-btn').addEventListener('click', () => openModal('modal-account'));
+      document.getElementById('acc-open-settings').addEventListener('click', () => openModal('modal-settings'));
+      document.getElementById('acc-sync-now-btn').addEventListener('click', () => {
+        scheduleCloudSync();
+        showToast('Library synced to cloud');
+      });
+      document.getElementById('acc-signout-btn').addEventListener('click', () => {
+        state.authToken = '';
+        state.user = null;
+        saveState();
+        updateAccountUI();
+        showToast('Signed out');
+      });
+
+      updateAccountUI();
       updatePlayerUI();
       lucide.createIcons();
       hydrateStarterCatalog();
+      initGoogleAuth();
     })();
   </script>
   <script>if ("serviceWorker" in navigator) { window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {})); }</script>
