@@ -3,27 +3,47 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#121212" />
+  <meta name="theme-color" content="#141618" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="/manifest.json" />
-  <title>Spotify — Web Player: Music for everyone</title>
+  <title>Hume Audio — Music Player</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
     :root {
-      --sp-black: #000000;
-      --sp-base: #121212;
-      --sp-elevated: #181818;
-      --sp-highlight: #282828;
-      --sp-input: #242424;
-      --sp-green: #1DB954;
-      --sp-green-bright: #1ED760;
+      --sp-black: #111315;
+      --sp-base: #141618;
+      --sp-elevated: #1F2226;
+      --sp-highlight: #282C31;
+      --sp-input: #22252A;
+      --sp-green: #5BC08A;
+      --sp-green-bright: #6FD49E;
       --sp-text: #FFFFFF;
-      --sp-subtext: #B3B3B3;
-      --sp-muted: #727272;
+      --sp-subtext: #9BA1A8;
+      --sp-muted: #6C727A;
+    }
+
+    .bento-card {
+      background: linear-gradient(180deg, rgba(40,44,50,0.88) 0%, rgba(28,31,35,0.95) 100%);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 8px 24px rgba(0,0,0,0.28);
+    }
+    .bento-pill {
+      background: rgba(34,37,42,0.9);
+      border: 1px solid rgba(255,255,255,0.07);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+    .bento-pill:hover {
+      background: rgba(45,49,56,0.95);
+    }
+    .frosted-chip {
+      background: rgba(20, 22, 24, 0.58);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.14);
     }
 
     * {
@@ -168,7 +188,7 @@
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
-<body class="bg-black text-white flex flex-col h-screen w-screen overflow-hidden">
+<body class="bg-[#111315] text-white flex flex-col h-screen w-screen overflow-hidden">
 
   <!-- Hidden Audio Engines -->
   <div id="yt-player-host"><div id="yt-player"></div></div>
@@ -176,13 +196,14 @@
   <input id="local-file-input" type="file" accept="audio/*" multiple class="hidden" />
 
   <!-- DESKTOP TOP BAR (hidden on small mobile, compact header shown instead) -->
-  <header class="hidden md:flex items-center justify-between h-16 px-4 bg-black shrink-0 gap-4">
+  <header class="hidden md:flex items-center justify-between h-16 px-4 bg-[#111315] shrink-0 gap-4">
     <!-- Left: Brand + Nav -->
     <div class="flex items-center gap-3 min-w-[180px]">
-      <button id="brand-home-btn" class="flex items-center gap-2 text-white hover:scale-105 transition-transform" title="Spotify Home">
-        <svg viewBox="0 0 24 24" class="w-8 h-8 fill-[#1DB954]" aria-hidden="true">
-          <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.72 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-        </svg>
+      <button id="brand-home-btn" class="flex items-center gap-2.5 text-white hover:opacity-90 transition" title="Home">
+        <span class="w-9 h-9 rounded-[12px] bg-[#5BC08A] text-[#111315] flex items-center justify-center shadow-lg">
+          <i data-lucide="disc-3" class="w-5 h-5"></i>
+        </span>
+        <span class="font-bold tracking-tight text-base hidden lg:inline">Hume</span>
       </button>
       <div class="flex items-center gap-1.5 ml-1">
         <button id="nav-back-btn" class="w-8 h-8 rounded-full bg-[#1f1f1f] hover:bg-[#2a2a2a] flex items-center justify-center text-[#b3b3b3] hover:text-white transition" title="Go back">
@@ -215,7 +236,7 @@
 
     <!-- Right: Import Spotify + Cloud Status + Settings -->
     <div class="flex items-center gap-2.5 shrink-0">
-      <button id="top-import-spotify-btn" class="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#1DB954] hover:bg-[#1ED760] text-black font-bold text-xs tracking-tight transition hover:scale-105">
+      <button id="top-import-spotify-btn" class="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#5BC08A] hover:bg-[#6FD49E] text-black font-bold text-xs tracking-tight transition hover:scale-105">
         <i data-lucide="link-2" class="w-3.5 h-3.5"></i>
         <span>Import Spotify Link</span>
       </button>
@@ -239,7 +260,7 @@
   <div class="flex-1 flex min-h-0 gap-2 md:px-2 overflow-hidden">
 
     <!-- LEFT SIDEBAR: YOUR LIBRARY (Desktop) -->
-    <aside id="left-sidebar" class="hidden md:flex flex-col w-[280px] lg:w-[310px] bg-[#121212] rounded-lg shrink-0 overflow-hidden">
+    <aside id="left-sidebar" class="hidden md:flex flex-col w-[280px] lg:w-[310px] bg-[#181B1E] rounded-[24px] border border-white/[0.07] shrink-0 overflow-hidden">
       <div class="flex items-center justify-between px-4 pt-4 pb-2">
         <button id="sidebar-library-btn" class="flex items-center gap-2.5 text-[#b3b3b3] hover:text-white font-bold text-sm transition">
           <i data-lucide="library" class="w-5 h-5"></i>
@@ -249,7 +270,7 @@
           <button id="sidebar-create-pl-btn" class="w-8 h-8 rounded-full hover:bg-[#242424] flex items-center justify-center text-[#b3b3b3] hover:text-white transition" title="Create playlist">
             <i data-lucide="plus" class="w-4 h-4"></i>
           </button>
-          <button id="sidebar-import-btn" class="w-8 h-8 rounded-full hover:bg-[#242424] flex items-center justify-center text-[#b3b3b3] hover:text-[#1DB954] transition" title="Import Spotify playlist link">
+          <button id="sidebar-import-btn" class="w-8 h-8 rounded-full hover:bg-[#242424] flex items-center justify-center text-[#b3b3b3] hover:text-[#5BC08A] transition" title="Import Spotify playlist link">
             <i data-lucide="download" class="w-4 h-4"></i>
           </button>
         </div>
@@ -267,12 +288,12 @@
     </aside>
 
     <!-- CENTER MAIN VIEWPORT -->
-    <main id="main-viewport" class="flex-1 bg-[#121212] md:rounded-lg overflow-y-auto relative min-w-0 pb-36 md:pb-6">
+    <main id="main-viewport" class="flex-1 bg-[#141618] md:rounded-[24px] md:border md:border-white/[0.07] overflow-y-auto relative min-w-0 pb-36 md:pb-6">
       <!-- Content injected dynamically by renderMain() -->
     </main>
 
     <!-- RIGHT SIDEBAR: NOW PLAYING / QUEUE / LYRICS (Desktop toggleable) -->
-    <aside id="right-sidebar" class="hidden xl:flex flex-col w-[300px] bg-[#121212] rounded-lg shrink-0 overflow-hidden">
+    <aside id="right-sidebar" class="hidden xl:flex flex-col w-[300px] bg-[#181B1E] rounded-[24px] border border-white/[0.07] shrink-0 overflow-hidden">
       <div class="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/5">
         <div class="flex items-center gap-1 bg-[#1f1f1f] p-1 rounded-full">
           <button data-right-tab="now" class="right-tab-btn px-3 py-1 rounded-full text-xs font-bold bg-[#333] text-white transition">Now Playing</button>
@@ -288,7 +309,7 @@
   </div>
 
   <!-- DESKTOP BOTTOM PLAYER BAR -->
-  <footer class="hidden md:grid grid-cols-3 items-center h-[88px] px-4 bg-black shrink-0 gap-4 border-t border-white/5">
+  <footer class="hidden md:grid grid-cols-3 items-center h-[88px] px-4 bg-[#111315] shrink-0 gap-4 border-t border-white/5">
     <!-- Left: Track Info -->
     <div class="flex items-center gap-3.5 min-w-0">
       <div id="desk-player-art-wrap" class="w-14 h-14 rounded bg-[#282828] overflow-hidden shrink-0 flex items-center justify-center cursor-pointer relative group">
@@ -327,7 +348,7 @@
         <span id="time-current" class="text-[11px] text-[#b3b3b3] tabular-nums w-9 text-right">0:00</span>
         <div class="relative flex-1 flex items-center">
           <div class="w-full h-1 bg-[#4d4d4d] rounded-full overflow-hidden pointer-events-none absolute">
-            <div id="seek-fill" class="h-full bg-white group-hover:bg-[#1DB954] w-0 rounded-full"></div>
+            <div id="seek-fill" class="h-full bg-white group-hover:bg-[#5BC08A] w-0 rounded-full"></div>
           </div>
           <input id="seek-slider" type="range" min="0" max="100" value="0" step="0.1" class="sp-range relative z-10" />
         </div>
@@ -346,7 +367,7 @@
       <button id="btn-eq-open" class="text-[#b3b3b3] hover:text-white transition" title="Equalizer & Sleep Timer">
         <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
       </button>
-      <span id="sleep-badge" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1DB954]/20 text-[#1DB954] tabular-nums"></span>
+      <span id="sleep-badge" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#5BC08A]/20 text-[#5BC08A] tabular-nums"></span>
       <div class="flex items-center gap-2 w-28 sp-slider-wrap">
         <button id="btn-mute" class="text-[#b3b3b3] hover:text-white transition shrink-0" title="Mute / Unmute">
           <i id="vol-icon" data-lucide="volume-2" class="w-4 h-4"></i>
@@ -361,128 +382,131 @@
     </div>
   </footer>
 
-  <!-- MOBILE FLOATING MINI-PLAYER + BOTTOM NAVIGATION -->
-  <div class="md:hidden fixed bottom-0 inset-x-0 z-30 flex flex-col bg-gradient-to-t from-black via-black/95 to-transparent pt-3">
-    <!-- Floating Mini Player (Spotify warm tinted bar) -->
-    <div id="mobile-mini-player" class="mx-2 mb-1 rounded-md bg-[#48231e] shadow-2xl overflow-hidden transition-colors duration-300">
-      <div class="flex items-center gap-2.5 px-2.5 py-2">
-        <div id="mob-mini-open" class="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer">
-          <div class="w-10 h-10 rounded-[4px] bg-[#181818] overflow-hidden shrink-0 flex items-center justify-center shadow">
+  <!-- MOBILE FLOATING HUME BENTO MINI-PLAYER + BOTTOM NAVIGATION -->
+  <div class="md:hidden fixed bottom-0 inset-x-0 z-30 flex flex-col bg-gradient-to-t from-[#111315] via-[#111315]/95 to-transparent pt-3">
+    <!-- Floating Bento Mini Player -->
+    <div id="mobile-mini-player" class="mx-3 mb-2 rounded-[20px] bento-card backdrop-blur-xl overflow-hidden">
+      <div class="flex items-center gap-2.5 px-3 py-2.5">
+        <div id="mob-mini-open" class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
+          <div class="w-10 h-10 rounded-[12px] bg-[#141618] overflow-hidden shrink-0 flex items-center justify-center border border-white/10">
             <img id="mob-player-art" src="" alt="" onerror="this.classList.add('hidden');document.getElementById('mob-player-art-icon').classList.remove('hidden')" class="w-full h-full object-cover hidden" />
-            <i id="mob-player-art-icon" data-lucide="music" class="w-5 h-5 text-[#727272]"></i>
+            <i id="mob-player-art-icon" data-lucide="music" class="w-5 h-5 text-[#5BC08A]"></i>
           </div>
           <div class="min-w-0">
-            <div id="mob-player-title" class="text-[13px] font-bold text-white truncate leading-snug">Tap any song to play</div>
-            <div id="mob-player-artist" class="text-[12px] text-white/70 truncate leading-tight">Spotify</div>
+            <div id="mob-player-title" class="text-[13px] font-semibold text-white truncate leading-snug">Tap any song to play</div>
+            <div id="mob-player-artist" class="text-[11px] text-[#9BA1A8] truncate leading-tight">Hume Audio</div>
           </div>
         </div>
-        <button id="mob-video-toggle" class="p-1.5 text-white/75 hover:text-white" title="Toggle Video">
-          <i data-lucide="monitor-speaker" class="w-5 h-5"></i>
+        <button id="mob-video-toggle" class="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-[#9BA1A8] hover:text-white" title="Toggle Video">
+          <i data-lucide="monitor-speaker" class="w-4 h-4"></i>
         </button>
-        <button id="mob-like-btn" class="p-1.5 text-white/75 hover:text-white" title="Like">
-          <i data-lucide="heart" class="w-5 h-5"></i>
+        <button id="mob-like-btn" class="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-[#9BA1A8] hover:text-white" title="Like">
+          <i data-lucide="heart" class="w-4 h-4"></i>
         </button>
-        <button id="mob-play-btn" class="p-1.5 text-white">
-          <i id="mob-play-icon" data-lucide="play" class="w-6 h-6 fill-current"></i>
+        <button id="mob-play-btn" class="w-9 h-9 rounded-full bg-white text-[#111315] flex items-center justify-center shadow">
+          <i id="mob-play-icon" data-lucide="play" class="w-4 h-4 fill-current ml-0.5"></i>
         </button>
       </div>
-      <div class="h-[2px] w-full bg-white/20">
-        <div id="mob-mini-progress" class="h-full bg-white w-0 transition-all duration-200"></div>
+      <div class="h-[2px] w-full bg-white/10">
+        <div id="mob-mini-progress" class="h-full bg-[#5BC08A] w-0 transition-all duration-200"></div>
       </div>
     </div>
 
-    <!-- Native-Style Bottom Tab Bar -->
-    <nav class="grid grid-cols-4 h-[58px] px-1">
-      <button data-mob-nav="home" class="mob-nav-btn flex flex-col items-center justify-center gap-1 text-white">
-        <i data-lucide="home" class="w-[22px] h-[22px]"></i>
+    <!-- Clean Matte Bottom Tab Bar -->
+    <nav class="grid grid-cols-4 h-[56px] px-2 border-t border-white/[0.06] bg-[#141618]/95 backdrop-blur-md">
+      <button data-mob-nav="home" class="mob-nav-btn flex flex-col items-center justify-center gap-0.5 text-white">
+        <i data-lucide="home" class="w-5 h-5"></i>
         <span class="text-[10px] font-medium">Home</span>
       </button>
-      <button data-mob-nav="search" class="mob-nav-btn flex flex-col items-center justify-center gap-1 text-[#b3b3b3]">
-        <i data-lucide="search" class="w-[22px] h-[22px]"></i>
+      <button data-mob-nav="search" class="mob-nav-btn flex flex-col items-center justify-center gap-0.5 text-[#9BA1A8]">
+        <i data-lucide="search" class="w-5 h-5"></i>
         <span class="text-[10px] font-medium">Search</span>
       </button>
-      <button data-mob-nav="library" class="mob-nav-btn flex flex-col items-center justify-center gap-1 text-[#b3b3b3]">
-        <i data-lucide="library" class="w-[22px] h-[22px]"></i>
-        <span class="text-[10px] font-medium">Your Library</span>
+      <button data-mob-nav="library" class="mob-nav-btn flex flex-col items-center justify-center gap-0.5 text-[#9BA1A8]">
+        <i data-lucide="library" class="w-5 h-5"></i>
+        <span class="text-[10px] font-medium">Library</span>
       </button>
-      <button data-mob-nav="import" class="mob-nav-btn flex flex-col items-center justify-center gap-1 text-[#b3b3b3]">
-        <i data-lucide="plus" class="w-[22px] h-[22px]"></i>
-        <span class="text-[10px] font-medium">Create</span>
+      <button data-mob-nav="import" class="mob-nav-btn flex flex-col items-center justify-center gap-0.5 text-[#5BC08A]">
+        <i data-lucide="link-2" class="w-5 h-5"></i>
+        <span class="text-[10px] font-semibold">Import</span>
       </button>
     </nav>
   </div>
 
-  <!-- MOBILE FULL-SCREEN NOW PLAYING SHEET -->
-  <div id="full-player-sheet" class="fixed inset-0 z-50 bg-gradient-to-b from-[#2b2b2b] via-[#121212] to-black hidden flex-col p-6 overflow-y-auto">
+  <!-- MOBILE FULL-SCREEN NOW PLAYING SHEET (Hume Bento Sage Edition) -->
+  <div id="full-player-sheet" class="fixed inset-0 z-50 bg-[#141618] hidden flex-col px-6 pt-5 pb-8 overflow-y-auto">
     <div class="flex items-center justify-between mb-6 shrink-0">
-      <button id="full-player-close" class="w-9 h-9 rounded-full flex items-center justify-center text-white hover:bg-white/10">
-        <i data-lucide="chevron-down" class="w-6 h-6"></i>
+      <button id="full-player-close" class="w-10 h-10 rounded-full bento-pill flex items-center justify-center text-white">
+        <i data-lucide="chevron-down" class="w-5 h-5"></i>
       </button>
       <div class="text-center">
-        <div class="text-[10px] uppercase tracking-widest text-[#b3b3b3]">Playing From</div>
-        <div id="full-player-source" class="text-xs font-bold text-white">Spotify Catalog</div>
+        <div class="text-xs font-semibold text-white">Now Playing</div>
+        <div id="full-player-source" class="text-[10px] text-[#9BA1A8] truncate max-w-[180px]">Hume Audio</div>
       </div>
-      <button id="full-player-eq-btn" class="w-9 h-9 rounded-full flex items-center justify-center text-white hover:bg-white/10" title="EQ & Sleep Timer">
-        <i data-lucide="sliders-horizontal" class="w-5 h-5"></i>
+      <button id="full-player-eq-btn" class="w-10 h-10 rounded-full bento-pill flex items-center justify-center text-white" title="EQ & Sleep Timer">
+        <i data-lucide="more-horizontal" class="w-5 h-5"></i>
       </button>
     </div>
 
-    <div class="w-full max-w-[340px] aspect-square mx-auto rounded-xl overflow-hidden shadow-2xl bg-[#181818] mb-7 shrink-0 flex items-center justify-center">
+    <div class="relative w-full max-w-[340px] aspect-square mx-auto rounded-[26px] overflow-hidden shadow-2xl bg-[#1F2226] border border-white/10 mb-7 shrink-0 flex items-center justify-center">
       <img id="full-player-art" src="" alt="" onerror="this.classList.add('hidden');document.getElementById('full-player-art-icon').classList.remove('hidden')" class="w-full h-full object-cover hidden" />
-      <i id="full-player-art-icon" data-lucide="music" class="w-16 h-16 text-[#555]"></i>
+      <i id="full-player-art-icon" data-lucide="music" class="w-16 h-16 text-[#5BC08A]/60"></i>
+      <div class="frosted-chip absolute top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[11px] font-semibold text-white/90 tracking-wide whitespace-nowrap">
+        HQ &nbsp;|&nbsp; Lossless
+      </div>
     </div>
 
     <div class="w-full max-w-[360px] mx-auto">
       <div class="flex items-center justify-between gap-3 mb-5">
         <div class="min-w-0">
-          <div id="full-player-title" class="text-xl font-extrabold text-white truncate">No track playing</div>
-          <div id="full-player-artist" class="text-sm text-[#b3b3b3] truncate">Pick a song to begin</div>
+          <div id="full-player-title" class="text-2xl font-bold text-white truncate tracking-tight">No track playing</div>
+          <div id="full-player-artist" class="text-sm text-[#9BA1A8] truncate mt-0.5">Pick a song to begin</div>
         </div>
-        <button id="full-like-btn" class="text-[#b3b3b3] hover:text-white p-1 shrink-0">
+        <button id="full-like-btn" class="text-[#9BA1A8] hover:text-[#5BC08A] p-1.5 shrink-0">
           <i data-lucide="heart" class="w-6 h-6"></i>
         </button>
       </div>
 
-      <!-- Scrubber -->
-      <div class="mb-5">
+      <!-- Tactile Sage Scrubber -->
+      <div class="mb-6">
         <div class="relative flex items-center">
-          <div class="w-full h-1.5 bg-white/20 rounded-full overflow-hidden pointer-events-none absolute">
-            <div id="full-seek-fill" class="h-full bg-white w-0 rounded-full"></div>
+          <div class="w-full h-1.5 bg-white/15 rounded-full overflow-hidden pointer-events-none absolute">
+            <div id="full-seek-fill" class="h-full bg-[#5BC08A] w-0 rounded-full"></div>
           </div>
           <input id="full-seek-slider" type="range" min="0" max="100" value="0" step="0.1" class="sp-range always-thumb relative z-10" />
         </div>
-        <div class="flex justify-between text-[11px] text-[#b3b3b3] tabular-nums mt-1.5">
+        <div class="flex justify-between text-[11px] text-[#9BA1A8] tabular-nums mt-2">
           <span id="full-time-current">0:00</span>
           <span id="full-time-total">0:00</span>
         </div>
       </div>
 
-      <!-- Main Transport -->
+      <!-- Matte Hardware Circular Transport Controls -->
       <div class="flex items-center justify-between mb-7">
-        <button id="full-btn-shuffle" class="text-[#b3b3b3] hover:text-white p-2">
-          <i data-lucide="shuffle" class="w-5 h-5"></i>
+        <button id="full-btn-shuffle" class="w-10 h-10 rounded-full bento-pill flex items-center justify-center text-[#9BA1A8] hover:text-white">
+          <i data-lucide="shuffle" class="w-4 h-4"></i>
         </button>
-        <button id="full-btn-prev" class="text-white p-2">
-          <i data-lucide="skip-back" class="w-7 h-7 fill-current"></i>
+        <button id="full-btn-prev" class="w-12 h-12 rounded-full bento-pill flex items-center justify-center text-white">
+          <i data-lucide="skip-back" class="w-5 h-5 fill-current"></i>
         </button>
-        <button id="full-btn-play" class="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center shadow-lg active:scale-95 transition">
+        <button id="full-btn-play" class="w-16 h-16 rounded-full bg-white text-[#111315] flex items-center justify-center shadow-xl active:scale-95 transition">
           <i id="full-play-icon" data-lucide="play" class="w-7 h-7 fill-current ml-0.5"></i>
         </button>
-        <button id="full-btn-next" class="text-white p-2">
-          <i data-lucide="skip-forward" class="w-7 h-7 fill-current"></i>
+        <button id="full-btn-next" class="w-12 h-12 rounded-full bento-pill flex items-center justify-center text-white">
+          <i data-lucide="skip-forward" class="w-5 h-5 fill-current"></i>
         </button>
-        <button id="full-btn-repeat" class="text-[#b3b3b3] hover:text-white p-2">
-          <i data-lucide="repeat" class="w-5 h-5"></i>
+        <button id="full-btn-repeat" class="w-10 h-10 rounded-full bento-pill flex items-center justify-center text-[#9BA1A8] hover:text-white">
+          <i data-lucide="repeat" class="w-4 h-4"></i>
         </button>
       </div>
 
-      <!-- Mobile Lyrics & Queue Card -->
-      <div class="bg-white/5 rounded-xl p-4 border border-white/10">
-        <div class="flex items-center gap-2 mb-3">
-          <button id="full-tab-lyrics" class="px-3 py-1 rounded-full text-xs font-bold bg-white text-black">Lyrics</button>
-          <button id="full-tab-queue" class="px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-white">Up Next</button>
+      <!-- Segmented Bento Pill for Lyrics & Queue -->
+      <div class="bento-card rounded-[22px] p-3.5">
+        <div class="grid grid-cols-2 gap-1.5 bg-[#141618] p-1 rounded-full mb-3">
+          <button id="full-tab-lyrics" class="py-1.5 rounded-full text-xs font-semibold bg-[#2B3036] text-white transition">Lyrics</button>
+          <button id="full-tab-queue" class="py-1.5 rounded-full text-xs font-semibold text-[#9BA1A8] hover:text-white transition">Up Next / Queue</button>
         </div>
-        <div id="full-extra-content" class="text-sm text-white/90 max-h-48 overflow-y-auto leading-relaxed"></div>
+        <div id="full-extra-content" class="text-sm text-white/90 max-h-44 overflow-y-auto leading-relaxed px-1"></div>
       </div>
     </div>
   </div>
@@ -494,7 +518,7 @@
     <div id="modal-import" class="modal-panel hidden w-full max-w-lg bg-[#1e1e1e] rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
       <div class="flex items-center justify-between px-5 py-4 border-b border-white/10">
         <div class="flex items-center gap-2">
-          <span class="w-8 h-8 rounded-full bg-[#1DB954]/20 text-[#1DB954] flex items-center justify-center">
+          <span class="w-8 h-8 rounded-full bg-[#5BC08A]/20 text-[#5BC08A] flex items-center justify-center">
             <i data-lucide="link-2" class="w-4 h-4"></i>
           </span>
           <div>
@@ -517,12 +541,12 @@
         <div id="import-panel-url" class="space-y-3">
           <div>
             <label class="block text-xs font-semibold text-[#b3b3b3] mb-1.5">Public Spotify Playlist URL</label>
-            <input id="spotify-url-input" type="url" placeholder="https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M" class="w-full px-3.5 py-2.5 rounded-lg bg-[#121212] border border-white/15 focus:border-[#1DB954] text-sm text-white outline-none" />
+            <input id="spotify-url-input" type="url" placeholder="https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M" class="w-full px-3.5 py-2.5 rounded-lg bg-[#121212] border border-white/15 focus:border-[#5BC08A] text-sm text-white outline-none" />
           </div>
           <div id="import-backend-note" class="p-3 rounded-lg bg-[#121212] border border-white/10 text-xs text-[#b3b3b3] leading-relaxed">
-            <strong class="text-white">24/7 Cloud Mode:</strong> Connect your free Render/Railway cloud backend URL in <button id="open-settings-from-import" class="text-[#1DB954] underline font-semibold">Settings</button> to auto-scrape any Spotify playlist link and match every song on YouTube Music automatically.
+            <strong class="text-white">24/7 Cloud Mode:</strong> Connect your free Render/Railway cloud backend URL in <button id="open-settings-from-import" class="text-[#5BC08A] underline font-semibold">Settings</button> to auto-scrape any Spotify playlist link and match every song on YouTube Music automatically.
           </div>
-          <button id="run-spotify-url-import" class="w-full py-3 rounded-full bg-[#1DB954] hover:bg-[#1ED760] text-black font-bold text-sm transition flex items-center justify-center gap-2">
+          <button id="run-spotify-url-import" class="w-full py-3 rounded-full bg-[#5BC08A] hover:bg-[#6FD49E] text-black font-bold text-sm transition flex items-center justify-center gap-2">
             <i data-lucide="sparkles" class="w-4 h-4"></i>
             <span>Auto-Import Spotify Playlist</span>
           </button>
@@ -532,18 +556,18 @@
         <div id="import-panel-paste" class="hidden space-y-3">
           <div>
             <label class="block text-xs font-semibold text-[#b3b3b3] mb-1.5">Playlist Name</label>
-            <input id="paste-pl-name" type="text" placeholder="My Imported Spotify Mix" class="w-full px-3.5 py-2 rounded-lg bg-[#121212] border border-white/15 focus:border-[#1DB954] text-sm text-white outline-none" />
+            <input id="paste-pl-name" type="text" placeholder="My Imported Spotify Mix" class="w-full px-3.5 py-2 rounded-lg bg-[#121212] border border-white/15 focus:border-[#5BC08A] text-sm text-white outline-none" />
           </div>
           <div>
             <label class="block text-xs font-semibold text-[#b3b3b3] mb-1.5">Paste YouTube URLs or "Song - Artist" (one per line)</label>
-            <textarea id="paste-tracks-input" rows="5" placeholder="https://www.youtube.com/watch?v=H64a2ggVIWc&#10;Blinding Lights - The Weeknd&#10;Pasoori - Ali Sethi" class="w-full px-3.5 py-2.5 rounded-lg bg-[#121212] border border-white/15 focus:border-[#1DB954] text-xs text-white outline-none font-mono"></textarea>
+            <textarea id="paste-tracks-input" rows="5" placeholder="https://www.youtube.com/watch?v=H64a2ggVIWc&#10;Blinding Lights - The Weeknd&#10;Pasoori - Ali Sethi" class="w-full px-3.5 py-2.5 rounded-lg bg-[#121212] border border-white/15 focus:border-[#5BC08A] text-xs text-white outline-none font-mono"></textarea>
           </div>
-          <button id="run-paste-import" class="w-full py-3 rounded-full bg-[#1DB954] hover:bg-[#1ED760] text-black font-bold text-sm transition">
+          <button id="run-paste-import" class="w-full py-3 rounded-full bg-[#5BC08A] hover:bg-[#6FD49E] text-black font-bold text-sm transition">
             Create Playlist Now
           </button>
         </div>
 
-        <div id="import-status" class="hidden text-xs p-3 rounded-lg bg-[#121212] text-[#1DB954] font-medium"></div>
+        <div id="import-status" class="hidden text-xs p-3 rounded-lg bg-[#121212] text-[#5BC08A] font-medium"></div>
       </div>
     </div>
 
@@ -558,13 +582,13 @@
       <div class="p-5 space-y-4">
         <div>
           <label class="block text-xs font-semibold text-[#b3b3b3] mb-1.5">Name</label>
-          <input id="new-pl-name" type="text" placeholder="My Playlist #1" class="w-full px-3.5 py-2.5 rounded-lg bg-[#121212] border border-white/15 focus:border-[#1DB954] text-sm text-white outline-none" />
+          <input id="new-pl-name" type="text" placeholder="My Playlist #1" class="w-full px-3.5 py-2.5 rounded-lg bg-[#121212] border border-white/15 focus:border-[#5BC08A] text-sm text-white outline-none" />
         </div>
         <div>
           <label class="block text-xs font-semibold text-[#b3b3b3] mb-1.5">Description (optional)</label>
-          <textarea id="new-pl-desc" rows="2" placeholder="Late night vibes, gym hits..." class="w-full px-3.5 py-2 rounded-lg bg-[#121212] border border-white/15 focus:border-[#1DB954] text-sm text-white outline-none"></textarea>
+          <textarea id="new-pl-desc" rows="2" placeholder="Late night vibes, gym hits..." class="w-full px-3.5 py-2 rounded-lg bg-[#121212] border border-white/15 focus:border-[#5BC08A] text-sm text-white outline-none"></textarea>
         </div>
-        <button id="confirm-create-pl" class="w-full py-2.5 rounded-full bg-[#1DB954] hover:bg-[#1ED760] text-black font-bold text-sm transition">Save Playlist</button>
+        <button id="confirm-create-pl" class="w-full py-2.5 rounded-full bg-[#5BC08A] hover:bg-[#6FD49E] text-black font-bold text-sm transition">Save Playlist</button>
       </div>
     </div>
 
@@ -579,13 +603,13 @@
       <div class="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
         <div>
           <label class="block text-xs font-semibold text-white mb-1">24/7 Cloud Backend URL (Render / Railway)</label>
-          <p class="text-[11px] text-[#b3b3b3] mb-2">Deploy the included <code class="text-[#1DB954]">spotify_cloud_pwa.zip</code> once for free, paste your HTTPS URL here, and get unlimited global YouTube Music search + automatic Spotify playlist link imports 24/7 on your phone.</p>
-          <input id="setting-backend-url" type="url" placeholder="https://my-spotify-cloud.onrender.com" class="w-full px-3.5 py-2.5 rounded-lg bg-[#121212] border border-white/15 focus:border-[#1DB954] text-sm text-white outline-none" />
+          <p class="text-[11px] text-[#b3b3b3] mb-2">Deploy the included <code class="text-[#5BC08A]">spotify_cloud_pwa.zip</code> once for free, paste your HTTPS URL here, and get unlimited global YouTube Music search + automatic Spotify playlist link imports 24/7 on your phone.</p>
+          <input id="setting-backend-url" type="url" placeholder="https://my-spotify-cloud.onrender.com" class="w-full px-3.5 py-2.5 rounded-lg bg-[#121212] border border-white/15 focus:border-[#5BC08A] text-sm text-white outline-none" />
         </div>
         <div>
           <label class="block text-xs font-semibold text-white mb-1">YouTube Data API v3 Key (Optional Standalone Search)</label>
           <p class="text-[11px] text-[#b3b3b3] mb-2">If you don't deploy a cloud backend yet, a free Google Cloud YouTube API key lets you search any song on Earth directly inside this browser.</p>
-          <input id="setting-yt-key" type="password" placeholder="AIzaSy..." class="w-full px-3.5 py-2.5 rounded-lg bg-[#121212] border border-white/15 focus:border-[#1DB954] text-sm text-white outline-none" />
+          <input id="setting-yt-key" type="password" placeholder="AIzaSy..." class="w-full px-3.5 py-2.5 rounded-lg bg-[#121212] border border-white/15 focus:border-[#5BC08A] text-sm text-white outline-none" />
         </div>
         <div class="flex items-center justify-between pt-2 border-t border-white/10">
           <div>
@@ -594,7 +618,7 @@
           </div>
           <button id="export-library-btn" class="px-3.5 py-1.5 rounded-full bg-[#282828] hover:bg-[#333] text-xs font-semibold text-white">Download JSON</button>
         </div>
-        <button id="save-settings-btn" class="w-full py-2.5 rounded-full bg-[#1DB954] hover:bg-[#1ED760] text-black font-bold text-sm transition">Save Settings</button>
+        <button id="save-settings-btn" class="w-full py-2.5 rounded-full bg-[#5BC08A] hover:bg-[#6FD49E] text-black font-bold text-sm transition">Save Settings</button>
       </div>
     </div>
 
@@ -663,13 +687,13 @@
             <div class="min-w-0 flex-1">
               <div id="acc-name" class="text-sm font-bold text-white truncate"></div>
               <div id="acc-email" class="text-xs text-[#b3b3b3] truncate"></div>
-              <div class="inline-flex items-center gap-1 mt-1 text-[11px] font-semibold text-[#1DB954]">
+              <div class="inline-flex items-center gap-1 mt-1 text-[11px] font-semibold text-[#5BC08A]">
                 <i data-lucide="cloud-check" class="w-3.5 h-3.5"></i> Playlists & preferences synced
               </div>
             </div>
           </div>
           <div class="flex gap-2">
-            <button id="acc-sync-now-btn" class="flex-1 py-2.5 rounded-full bg-[#1DB954] hover:bg-[#1ED760] text-black font-bold text-xs transition">Sync Now</button>
+            <button id="acc-sync-now-btn" class="flex-1 py-2.5 rounded-full bg-[#5BC08A] hover:bg-[#6FD49E] text-black font-bold text-xs transition">Sync Now</button>
             <button id="acc-signout-btn" class="px-4 py-2.5 rounded-full bg-[#282828] hover:bg-red-500/20 hover:text-red-300 text-white font-bold text-xs transition">Sign Out</button>
           </div>
         </div>
@@ -679,13 +703,13 @@
           <div id="google-signin-btn-wrap" class="flex justify-center py-2"></div>
           <div id="google-setup-hint" class="hidden p-3.5 rounded-xl bg-[#121212] border border-white/10 text-xs text-[#b3b3b3] space-y-1.5">
             <div class="font-bold text-white">One-time Google Sign-In activation</div>
-            <div>Add <code class="text-[#1DB954]">GOOGLE_CLIENT_ID</code> in your Render Environment Variables to enable the live Google Sign-In button here.</div>
+            <div>Add <code class="text-[#5BC08A]">GOOGLE_CLIENT_ID</code> in your Render Environment Variables to enable the live Google Sign-In button here.</div>
           </div>
         </div>
 
         <div class="pt-3 border-t border-white/10 flex items-center justify-between">
           <span class="text-xs text-[#b3b3b3]">Cloud URL, YouTube API & backup</span>
-          <button id="acc-open-settings" class="text-xs font-bold text-[#1DB954] hover:underline">Open Settings</button>
+          <button id="acc-open-settings" class="text-xs font-bold text-[#5BC08A] hover:underline">Open Settings</button>
         </div>
       </div>
     </div>
@@ -722,7 +746,7 @@
           name: "Today's Top Hits",
           description: 'The biggest global tracks right now — streaming free.',
           gradient: 'from-emerald-600 via-teal-700 to-[#121212]',
-          accent: '#1DB954',
+          accent: '#5BC08A',
           editorial: true,
           trackIds: ['yt_H64a2ggVIWc', 'yt_V9PVRfjEBTI', 'yt_TUVcZfQe-Kw', 'yt_D_3nlLlPMxA', 'yt_XUqRem0W8L8', 'yt_ah4jxqEUekI']
         },
@@ -999,7 +1023,7 @@
         const dot = document.getElementById('cloud-dot');
         if (!dot) return;
         if (state.settings.backendUrl) {
-          dot.className = 'w-2 h-2 rounded-full bg-[#1DB954] absolute top-1.5 right-1.5';
+          dot.className = 'w-2 h-2 rounded-full bg-[#5BC08A] absolute top-1.5 right-1.5';
           dot.title = 'Connected to 24/7 Cloud Backend';
         } else if (state.settings.ytApiKey) {
           dot.className = 'w-2 h-2 rounded-full bg-sky-400 absolute top-1.5 right-1.5';
@@ -1285,7 +1309,7 @@
           row.classList.toggle('bg-white/5', !!isCur);
           const titleEl = playNode ? playNode.querySelector('.text-sm') : null;
           if (titleEl) {
-            titleEl.classList.toggle('text-[#1DB954]', !!isCur);
+            titleEl.classList.toggle('text-[#5BC08A]', !!isCur);
             titleEl.classList.toggle('text-white', !isCur);
           }
         });
@@ -1688,7 +1712,7 @@
         }
 
         statusEl.textContent = 'Fetching Spotify playlist and matching every track on YouTube Music...';
-        statusEl.className = 'text-xs p-3 rounded-lg bg-[#121212] text-[#1DB954] font-medium';
+        statusEl.className = 'text-xs p-3 rounded-lg bg-[#121212] text-[#5BC08A] font-medium';
         statusEl.classList.remove('hidden');
 
         try {
@@ -1729,7 +1753,7 @@
             name: data.name || 'Imported Spotify Playlist',
             description: `Auto-imported from Spotify (${newIds.length} tracks)`,
             gradient: 'from-emerald-600 via-green-900 to-[#121212]',
-            accent: '#1DB954',
+            accent: '#5BC08A',
             editorial: false,
             trackIds: newIds
           };
@@ -1759,7 +1783,7 @@
         const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
         const newIds = [];
         statusEl.textContent = `Processing ${lines.length} entries...`;
-        statusEl.className = 'text-xs p-3 rounded-lg bg-[#121212] text-[#1DB954] font-medium';
+        statusEl.className = 'text-xs p-3 rounded-lg bg-[#121212] text-[#5BC08A] font-medium';
         statusEl.classList.remove('hidden');
 
         for (const line of lines) {
@@ -1913,7 +1937,7 @@
         const list = document.getElementById('add-to-pl-list');
         const customPls = state.playlists.filter(p => !p.editorial);
         if (customPls.length === 0) {
-          list.innerHTML = `<div class="p-4 text-center text-xs text-[#b3b3b3]">No custom playlists yet.<br><button id="quick-new-pl-from-add" class="mt-3 px-4 py-2 rounded-full bg-[#1DB954] text-black font-bold">Create Playlist</button></div>`;
+          list.innerHTML = `<div class="p-4 text-center text-xs text-[#b3b3b3]">No custom playlists yet.<br><button id="quick-new-pl-from-add" class="mt-3 px-4 py-2 rounded-full bg-[#5BC08A] text-black font-bold">Create Playlist</button></div>`;
           document.getElementById('quick-new-pl-from-add').addEventListener('click', () => openModal('modal-create-pl'));
         } else {
           list.innerHTML = customPls.map(p => `
@@ -1922,7 +1946,7 @@
                 <div class="text-sm font-semibold text-white">${esc(p.name)}</div>
                 <div class="text-xs text-[#b3b3b3]">${p.trackIds.length} songs</div>
               </div>
-              <i data-lucide="plus-circle" class="w-4 h-4 text-[#1DB954]"></i>
+              <i data-lucide="plus-circle" class="w-4 h-4 text-[#5BC08A]"></i>
             </button>
           `).join('');
           list.querySelectorAll('[data-pick-pl]').forEach(btn => {
@@ -1961,7 +1985,7 @@
                 <i data-lucide="heart" class="w-5 h-5 text-white fill-white"></i>
               </div>
               <div class="min-w-0">
-                <div class="text-sm font-semibold ${state.view === 'liked' ? 'text-[#1DB954]' : 'text-white'} truncate">Liked Songs</div>
+                <div class="text-sm font-semibold ${state.view === 'liked' ? 'text-[#5BC08A]' : 'text-white'} truncate">Liked Songs</div>
                 <div class="text-xs text-[#b3b3b3] truncate">Playlist • ${state.likedIds.length} songs</div>
               </div>
             </button>
@@ -1976,7 +2000,7 @@
                   ${renderCoverImg(firstTrack ? firstTrack.cover : "", pl.name, "disc-3", "w-5 h-5")}
                 </div>
                 <div class="min-w-0">
-                  <div class="text-sm font-semibold ${active ? 'text-[#1DB954]' : 'text-white'} truncate">${esc(pl.name)}</div>
+                  <div class="text-sm font-semibold ${active ? 'text-[#5BC08A]' : 'text-white'} truncate">${esc(pl.name)}</div>
                   <div class="text-xs text-[#b3b3b3] truncate">${pl.editorial ? 'Spotify' : 'Custom'} • ${pl.trackIds.length} songs</div>
                 </div>
               </button>
@@ -1995,7 +2019,7 @@
                   ${renderCoverImg(sample ? sample.cover : "", artist, "user", "w-5 h-5")}
                 </div>
                 <div class="min-w-0">
-                  <div class="text-sm font-semibold ${active ? 'text-[#1DB954]' : 'text-white'} truncate">${esc(artist)}</div>
+                  <div class="text-sm font-semibold ${active ? 'text-[#5BC08A]' : 'text-white'} truncate">${esc(artist)}</div>
                   <div class="text-xs text-[#b3b3b3]">Artist</div>
                 </div>
               </button>
@@ -2027,8 +2051,8 @@
                 <div class="track-row group grid grid-cols-[1fr_auto] md:grid-cols-[36px_1fr_1fr_96px] items-center gap-3 md:gap-4 px-3 md:px-4 py-2 rounded-md hover:bg-white/10 transition ${isCur ? 'bg-white/5' : ''}">
                   <div class="hidden md:flex items-center justify-center">
                     ${isCur && state.isPlaying
-                      ? `<div class="eq-anim flex items-end gap-0.5 h-3.5"><span class="w-0.5 bg-[#1DB954]"></span><span class="w-0.5 bg-[#1DB954]"></span><span class="w-0.5 bg-[#1DB954]"></span></div>`
-                      : `<span class="track-num text-sm ${isCur ? 'text-[#1DB954]' : 'text-[#b3b3b3]'} tabular-nums">${i + 1}</span>
+                      ? `<div class="eq-anim flex items-end gap-0.5 h-3.5"><span class="w-0.5 bg-[#5BC08A]"></span><span class="w-0.5 bg-[#5BC08A]"></span><span class="w-0.5 bg-[#5BC08A]"></span></div>`
+                      : `<span class="track-num text-sm ${isCur ? 'text-[#5BC08A]' : 'text-[#b3b3b3]'} tabular-nums">${i + 1}</span>
                          <button data-play-track="${esc(t.id)}" data-queue='${esc(qList)}' class="track-play-icon text-white"><i data-lucide="play" class="w-4 h-4 fill-current"></i></button>`
                     }
                   </div>
@@ -2037,14 +2061,14 @@
                       ${renderCoverImg(t.cover, t.title, "music", "w-4 h-4")}
                     </div>
                     <div class="min-w-0">
-                      <div class="text-sm font-semibold truncate ${isCur ? 'text-[#1DB954]' : 'text-white'}">${esc(t.title)}</div>
+                      <div class="text-sm font-semibold truncate ${isCur ? 'text-[#5BC08A]' : 'text-white'}">${esc(t.title)}</div>
                       <div class="text-xs text-[#b3b3b3] truncate">${esc(t.artist)}</div>
                     </div>
                   </div>
                   <div class="hidden md:block text-xs text-[#b3b3b3] truncate">${esc(t.album || 'Single')}</div>
                   <div class="flex items-center justify-end gap-2">
-                    <button data-like-track="${esc(t.id)}" class="${isLiked ? 'text-[#1DB954]' : 'text-[#b3b3b3] md:opacity-0 md:group-hover:opacity-100'} hover:scale-110 transition p-1" title="Like">
-                      <i data-lucide="heart" class="w-4 h-4 ${isLiked ? 'fill-[#1DB954]' : ''}"></i>
+                    <button data-like-track="${esc(t.id)}" class="${isLiked ? 'text-[#5BC08A]' : 'text-[#b3b3b3] md:opacity-0 md:group-hover:opacity-100'} hover:scale-110 transition p-1" title="Like">
+                      <i data-lucide="heart" class="w-4 h-4 ${isLiked ? 'fill-[#5BC08A]' : ''}"></i>
                     </button>
                     <button data-add-queue="${esc(t.id)}" class="text-[#b3b3b3] md:opacity-0 md:group-hover:opacity-100 hover:text-white transition p-1" title="Add to queue">
                       <i data-lucide="list-plus" class="w-4 h-4"></i>
@@ -2079,7 +2103,7 @@
           `;
         }
         return `
-          ${state.searchingRemote ? `<div class="text-xs text-[#1DB954] font-semibold mb-4 flex items-center gap-2">Searching global music catalog...</div>` : ''}
+          ${state.searchingRemote ? `<div class="text-xs text-[#5BC08A] font-semibold mb-4 flex items-center gap-2">Searching global music catalog...</div>` : ''}
           ${state.remoteResults.length > 0 ? `
             <h2 class="text-lg font-bold mb-3">Global Search Results</h2>
             <div class="mb-7">${renderTrackTable(state.remoteResults)}</div>
@@ -2103,142 +2127,135 @@
         const wasInlineSearchFocused = document.activeElement && document.activeElement.id === 'inline-search-input';
         const selStart = wasInlineSearchFocused ? document.activeElement.selectionStart : null;
 
-        // 1. HOME VIEW (Authentic Spotify Mobile & Desktop layout)
+        // 1. HOME VIEW (Hume Bento Sage Emerald + Split 3-Cover Collage)
         if (state.view === 'home') {
-          const filteredTracks = state.homeFilter === 'all'
-            ? state.tracks
-            : state.tracks.filter(t => t.genre.toLowerCase().includes(state.homeFilter));
-          const artists = [...new Set(state.tracks.map(t => t.artist.split(',')[0].trim()))].slice(0, 8);
+          const cur = getTrack(state.currentTrackId);
+          const customPls = state.playlists.filter(p => !p.editorial);
+          const heroPl = customPls[0] || state.playlists[0];
+          const heroTracks = (heroPl ? heroPl.trackIds : []).map(getTrack).filter(Boolean);
+          const heroCovers = [
+            heroTracks[0]?.cover || state.tracks[0]?.cover || '',
+            heroTracks[1]?.cover || state.tracks[1]?.cover || '',
+            heroTracks[2]?.cover || state.tracks[2]?.cover || ''
+          ];
           const recentTracks = state.recentIds.map(getTrack).filter(Boolean);
-          const quickPlaylists = state.playlists.slice(0, 5);
+          const displayTracks = recentTracks.length > 0 ? recentTracks : state.tracks;
 
           vp.innerHTML = `
-            <div class="bg-[#121212] px-4 md:px-6 pt-4 md:pt-5 pb-10">
-              <!-- Single-Row Spotify Top Bar (Avatar + Filter Pills) -->
-              <div class="flex items-center gap-2 mb-5 overflow-x-auto no-scrollbar">
-                <button id="mob-settings-btn" class="md:hidden w-8 h-8 rounded-full bg-[#3b82f6] text-black font-extrabold text-sm flex items-center justify-center shrink-0 overflow-hidden" title="Account & Settings">
-                  ${state.user && state.user.picture
-                    ? `<img src="${esc(state.user.picture)}" alt="" class="w-full h-full object-cover" />`
-                    : `${esc((state.user?.name || 'G').charAt(0).toUpperCase())}`}
-                </button>
-                ${[
-                  { id: 'all', label: 'All' },
-                  { id: 'pop', label: 'Music' },
-                  { id: 'south asian', label: 'South Asian' },
-                  { id: 'punjabi', label: 'Punjabi' },
-                  { id: 'hip-hop', label: 'Hip-Hop' }
-                ].map(f => `
-                  <button data-home-filter="${f.id}" class="px-4 py-1.5 rounded-full text-[13px] font-medium shrink-0 transition ${state.homeFilter === f.id ? 'bg-[#1ED760] text-black font-semibold' : 'bg-[#2a2a2a] text-white hover:bg-[#333]'}">${f.label}</button>
-                `).join('')}
-                <button id="mob-upload-btn" class="md:hidden ml-auto px-3 py-1.5 rounded-full bg-[#2a2a2a] text-white text-xs font-medium shrink-0">Local MP3</button>
-              </div>
-
-              <!-- 6-Tile Compact Quick Picks Grid (Liked Songs #1 + 5 Playlists, sharp Spotify cards) -->
-              <div class="grid grid-cols-2 2xl:grid-cols-3 gap-2 md:gap-3 mb-7">
-                <div data-nav="liked" class="quick-card group flex items-center bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-[4px] overflow-hidden cursor-pointer transition relative h-14">
-                  <div class="w-14 h-14 bg-gradient-to-br from-[#450af5] via-[#6d4aff] to-[#c4efd9] shrink-0 flex items-center justify-center">
-                    <i data-lucide="heart" class="w-5 h-5 text-white fill-white"></i>
-                  </div>
-                  <span class="px-2.5 text-[13px] font-bold text-white line-clamp-2 leading-tight flex-1">Liked Songs</span>
+            <div class="bg-[#141618] px-4 md:px-7 pt-5 pb-12 max-w-[980px] mx-auto">
+              <!-- Minimal Top Header: Title + Profile Avatar -->
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h1 class="text-[28px] font-bold tracking-tight text-white leading-none">Playlists</h1>
                 </div>
-                ${quickPlaylists.map(pl => {
-                  const first = getTrack(pl.trackIds[0]);
-                  return `
-                    <div data-nav="playlist" data-param="${esc(pl.id)}" class="quick-card group flex items-center bg-[#2a2a2a] hover:bg-[#3a3a3a] rounded-[4px] overflow-hidden cursor-pointer transition relative h-14">
-                      <div class="w-14 h-14 bg-gradient-to-br ${pl.gradient} shrink-0 flex items-center justify-center overflow-hidden relative">
-                        ${renderCoverImg(first ? first.cover : '', pl.name, 'disc-3', 'w-5 h-5')}
-                      </div>
-                      <span class="px-2.5 text-[13px] font-bold text-white line-clamp-2 leading-tight flex-1">${esc(pl.name)}</span>
-                      <button data-play-pl="${esc(pl.id)}" class="quick-play-btn hidden md:flex absolute right-2 w-9 h-9 rounded-full bg-[#1DB954] hover:bg-[#1ED760] hover:scale-105 text-black items-center justify-center shadow-lg">
-                        <i data-lucide="play" class="w-4 h-4 fill-current ml-0.5"></i>
-                      </button>
-                    </div>
-                  `;
-                }).join('')}
+                <div class="flex items-center gap-2.5">
+                  <button id="mob-upload-btn" class="md:hidden px-3 py-1.5 rounded-full bento-pill text-[11px] font-semibold text-[#9BA1A8] hover:text-white">Local MP3</button>
+                  <button id="mob-settings-btn" class="md:hidden w-9 h-9 rounded-full bg-[#2A2E33] border border-white/15 text-white font-bold text-sm flex items-center justify-center shrink-0 overflow-hidden" title="Account & Settings">
+                    ${state.user && state.user.picture
+                      ? `<img src="${esc(state.user.picture)}" alt="" class="w-full h-full object-cover" />`
+                      : `${esc((state.user?.name || 'G').charAt(0).toUpperCase())}`}
+                  </button>
+                </div>
               </div>
 
-              <!-- Your top mixes (Horizontal Borderless Carousel like real Spotify) -->
+              <!-- Active Session Status Pill (Hume Signature Sage Squircle Badge) -->
+              <div id="hume-status-pill" class="bento-card rounded-[20px] p-3 mb-4 flex items-center gap-3.5 cursor-pointer hover:brightness-110 transition">
+                <div class="w-11 h-11 rounded-[14px] bg-[#5BC08A] text-[#111315] flex items-center justify-center shrink-0 shadow-md">
+                  <i data-lucide="${state.isPlaying ? 'audio-lines' : 'disc-3'}" class="w-5 h-5"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="text-sm font-semibold text-white truncate">${cur ? esc(cur.title) : 'Now Listening'}</div>
+                  <div class="text-xs text-[#9BA1A8] truncate">${cur ? esc(cur.artist) + (state.isPlaying ? ' • Playing' : ' • Paused') : 'Tap any track or import a Spotify playlist'}</div>
+                </div>
+                <span class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[#9BA1A8]">
+                  <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </span>
+              </div>
+
+              <!-- Hero 3-Cover Split Playlist Collage Bento Card (Exact Concept #2) -->
+              <div class="bento-card rounded-[26px] p-3 mb-4">
+                <div data-nav="playlist" data-param="${esc(heroPl.id)}" class="relative h-36 sm:h-48 rounded-[18px] overflow-hidden bg-[#181B1E] mb-2.5 cursor-pointer group">
+                  ${renderCoverImg(heroCovers[0], heroPl.name, 'disc-3', 'w-12 h-12')}
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/15"></div>
+                  <span class="frosted-chip absolute top-3 right-3 px-3 py-1 rounded-full text-[11px] font-semibold text-white">${esc(heroPl.name)}</span>
+                  <span class="frosted-chip absolute bottom-3 left-3 px-3 py-1 rounded-full text-[11px] font-medium text-white/90">${heroPl.trackIds.length} tracks</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2.5 items-center">
+                  <div data-nav="playlist" data-param="${esc((state.playlists[1] || heroPl).id)}" class="aspect-square rounded-[16px] overflow-hidden bg-[#181B1E] cursor-pointer relative">
+                    ${renderCoverImg(heroCovers[1], 'Mix 2', 'music', 'w-8 h-8')}
+                  </div>
+                  <div data-nav="playlist" data-param="${esc((state.playlists[2] || heroPl).id)}" class="aspect-square rounded-[16px] overflow-hidden bg-[#181B1E] cursor-pointer relative">
+                    ${renderCoverImg(heroCovers[2], 'Mix 3', 'music', 'w-8 h-8')}
+                  </div>
+                  <div class="aspect-square rounded-[16px] bg-[#181B1E]/60 border border-white/[0.06] flex items-center justify-center">
+                    <button data-play-pl="${esc(heroPl.id)}" class="w-14 h-14 rounded-full bg-[#5BC08A]/20 hover:bg-[#5BC08A]/35 border border-[#5BC08A]/40 text-white flex items-center justify-center shadow-[0_0_24px_rgba(91,192,138,0.28)] active:scale-95 transition" title="Play featured playlist">
+                      <i data-lucide="play" class="w-6 h-6 fill-white ml-0.5"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3-Tile Tactile Quick Action Row (Import Link / Search / EQ) -->
+              <div class="grid grid-cols-3 gap-2.5 mb-6">
+                <button id="hume-act-import" class="bento-pill rounded-[20px] py-4 px-3 flex flex-col items-center justify-center gap-2 text-center transition active:scale-95">
+                  <i data-lucide="link-2" class="w-5 h-5 text-white"></i>
+                  <span class="text-xs font-medium text-[#D3D7DC]">Import Link</span>
+                </button>
+                <button data-nav="search" class="bento-pill rounded-[20px] py-4 px-3 flex flex-col items-center justify-center gap-2 text-center transition active:scale-95">
+                  <i data-lucide="search" class="w-5 h-5 text-white"></i>
+                  <span class="text-xs font-medium text-[#D3D7DC]">Search</span>
+                </button>
+                <button id="hume-act-eq" class="bento-pill rounded-[20px] py-4 px-3 flex flex-col items-center justify-center gap-2 text-center transition active:scale-95">
+                  <i data-lucide="sliders-vertical" class="w-5 h-5 text-white"></i>
+                  <span class="text-xs font-medium text-[#D3D7DC]">EQ</span>
+                </button>
+              </div>
+
+              <!-- Stacked Rounded-Pill Track Rows (Exact Hume History/Track List Look) -->
               <section class="mb-7">
-                <h2 class="text-[22px] font-extrabold tracking-tight text-white mb-3.5">Your top mixes</h2>
-                <div class="flex gap-3.5 overflow-x-auto no-scrollbar pb-1">
-                  ${state.playlists.map(pl => {
-                    const first = getTrack(pl.trackIds[0]);
-                    const subArtists = pl.trackIds.slice(0, 3).map(id => getTrack(id)?.artist.split(',')[0]).filter(Boolean).join(', ');
+                <div class="flex items-center justify-between mb-3 px-1">
+                  <h2 class="text-base font-bold text-white">${recentTracks.length > 0 ? 'Recently Played' : 'Trending Now'}</h2>
+                  <button data-nav="library" class="text-xs font-semibold text-[#5BC08A] hover:underline">All Playlists</button>
+                </div>
+                <div class="space-y-2">
+                  ${displayTracks.slice(0, 8).map(t => {
+                    const isCur = state.currentTrackId === t.id;
                     return `
-                      <div data-nav="playlist" data-param="${esc(pl.id)}" class="sp-card w-[154px] md:w-[172px] shrink-0 cursor-pointer group">
-                        <div class="relative w-[154px] h-[154px] md:w-[172px] md:h-[172px] rounded-[4px] overflow-hidden bg-[#242424] mb-2">
-                          ${renderCoverImg(first ? first.cover : '', pl.name, 'disc-3', 'w-10 h-10')}
-                          <div class="absolute inset-x-0 bottom-2.5 px-2.5">
-                            <div class="inline-block bg-black/75 backdrop-blur-sm border-l-4 px-2 py-0.5 text-xs font-extrabold text-white truncate max-w-full" style="border-color:${pl.accent || '#1DB954'}">${esc(pl.name)}</div>
-                          </div>
-                          <button data-play-pl="${esc(pl.id)}" class="card-play-btn hidden md:flex absolute bottom-2 right-2 w-11 h-11 rounded-full bg-[#1DB954] hover:bg-[#1ED760] text-black items-center justify-center shadow-xl">
-                            <i data-lucide="play" class="w-5 h-5 fill-current ml-0.5"></i>
-                          </button>
+                      <div data-play-track="${esc(t.id)}" class="bento-pill rounded-[18px] p-2.5 pr-3.5 flex items-center gap-3 cursor-pointer transition ${isCur ? 'border-[#5BC08A]/50' : ''}">
+                        <div class="w-11 h-11 rounded-[12px] overflow-hidden bg-[#141618] shrink-0">
+                          ${renderCoverImg(t.cover, t.title, 'music', 'w-5 h-5')}
                         </div>
-                        <div class="text-[12px] text-[#b3b3b3] line-clamp-2 leading-snug">${esc(subArtists || pl.description)}</div>
+                        <div class="min-w-0 flex-1">
+                          <div class="text-[13px] font-semibold truncate ${isCur ? 'text-[#5BC08A]' : 'text-white'}">${esc(t.title)}</div>
+                          <div class="text-[11px] text-[#9BA1A8] truncate">${esc(t.artist)}</div>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-[#6C727A] shrink-0"></i>
                       </div>
                     `;
                   }).join('')}
                 </div>
               </section>
 
-              <!-- Jump back in (Horizontal Borderless Carousel) -->
-              ${recentTracks.length > 0 ? `
-                <section class="mb-7">
-                  <h2 class="text-[22px] font-extrabold tracking-tight text-white mb-3.5">Jump back in</h2>
-                  <div class="flex gap-3.5 overflow-x-auto no-scrollbar pb-1">
-                    ${recentTracks.slice(0, 10).map(t => `
-                      <div data-play-track="${esc(t.id)}" class="sp-card w-[154px] md:w-[172px] shrink-0 cursor-pointer">
-                        <div class="relative w-[154px] h-[154px] md:w-[172px] md:h-[172px] rounded-[4px] overflow-hidden bg-[#242424] mb-2">
-                          ${renderCoverImg(t.cover, t.title, "music", "w-10 h-10")}
-                          <button class="card-play-btn hidden md:flex absolute bottom-2 right-2 w-11 h-11 rounded-full bg-[#1DB954] hover:bg-[#1ED760] text-black items-center justify-center shadow-xl">
-                            <i data-lucide="play" class="w-5 h-5 fill-current ml-0.5"></i>
-                          </button>
-                        </div>
-                        <div class="text-[11px] text-[#b3b3b3] leading-tight">Single</div>
-                        <div class="text-[13px] font-bold text-white truncate mt-0.5">${esc(t.title)}</div>
-                        <div class="text-[12px] text-[#b3b3b3] truncate">${esc(t.artist)}</div>
-                      </div>
-                    `).join('')}
-                  </div>
-                </section>
-              ` : ''}
-
-              <!-- Trending Worldwide (Horizontal Borderless Carousel) -->
-              <section class="mb-7">
-                <div class="flex items-center justify-between mb-3.5">
-                  <h2 class="text-[22px] font-extrabold tracking-tight text-white">Trending Worldwide</h2>
-                  <button data-nav="search" class="text-xs font-bold text-[#b3b3b3] hover:underline">Show all</button>
-                </div>
-                <div class="flex gap-3.5 overflow-x-auto no-scrollbar pb-1">
-                  ${filteredTracks.slice(0, 12).map(t => `
-                    <div data-play-track="${esc(t.id)}" class="sp-card w-[154px] md:w-[172px] shrink-0 cursor-pointer">
-                      <div class="relative w-[154px] h-[154px] md:w-[172px] md:h-[172px] rounded-[4px] overflow-hidden bg-[#242424] mb-2">
-                        ${renderCoverImg(t.cover, t.title, "music", "w-10 h-10")}
-                        <button class="card-play-btn hidden md:flex absolute bottom-2 right-2 w-11 h-11 rounded-full bg-[#1DB954] hover:bg-[#1ED760] text-black items-center justify-center shadow-xl">
-                          <i data-lucide="play" class="w-5 h-5 fill-current ml-0.5"></i>
-                        </button>
-                      </div>
-                      <div class="text-[13px] font-bold text-white truncate">${esc(t.title)}</div>
-                      <div class="text-[12px] text-[#b3b3b3] truncate mt-0.5">${esc(t.artist)}</div>
-                    </div>
-                  `).join('')}
-                </div>
-              </section>
-
-              <!-- Popular Artists (Horizontal Circular Carousel) -->
+              <!-- Your Playlists Bento Carousel -->
               <section>
-                <h2 class="text-[22px] font-extrabold tracking-tight text-white mb-3.5">Popular artists</h2>
-                <div class="flex gap-4 overflow-x-auto no-scrollbar pb-1">
-                  ${artists.map(artist => {
-                    const sample = state.tracks.find(t => t.artist.includes(artist));
+                <h2 class="text-base font-bold text-white mb-3 px-1">Your Mixes & Playlists</h2>
+                <div class="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+                  <div data-nav="liked" class="bento-card rounded-[20px] p-2.5 w-[146px] shrink-0 cursor-pointer hover:brightness-110 transition">
+                    <div class="aspect-square rounded-[14px] bg-gradient-to-br from-[#5BC08A] via-teal-700 to-[#141618] flex items-center justify-center mb-2">
+                      <i data-lucide="heart" class="w-8 h-8 text-white fill-white"></i>
+                    </div>
+                    <div class="text-xs font-semibold text-white truncate px-0.5">Liked Songs</div>
+                    <div class="text-[11px] text-[#9BA1A8] px-0.5">${state.likedIds.length} tracks</div>
+                  </div>
+                  ${state.playlists.map(pl => {
+                    const first = getTrack(pl.trackIds[0]);
                     return `
-                      <div data-nav="artist" data-param="${esc(artist)}" class="sp-card w-[132px] md:w-[152px] shrink-0 cursor-pointer text-center">
-                        <div class="relative w-[132px] h-[132px] md:w-[152px] md:h-[152px] rounded-full overflow-hidden bg-[#242424] mb-2">
-                          ${renderCoverImg(sample ? sample.cover : "", artist, "user", "w-10 h-10")}
+                      <div data-nav="playlist" data-param="${esc(pl.id)}" class="bento-card rounded-[20px] p-2.5 w-[146px] shrink-0 cursor-pointer hover:brightness-110 transition">
+                        <div class="aspect-square rounded-[14px] overflow-hidden bg-[#141618] mb-2">
+                          ${renderCoverImg(first ? first.cover : '', pl.name, 'disc-3', 'w-8 h-8')}
                         </div>
-                        <div class="text-[13px] font-bold text-white truncate">${esc(artist)}</div>
-                        <div class="text-[11px] text-[#b3b3b3] mt-0.5">Artist</div>
+                        <div class="text-xs font-semibold text-white truncate px-0.5">${esc(pl.name)}</div>
+                        <div class="text-[11px] text-[#9BA1A8] px-0.5">${pl.trackIds.length} tracks</div>
                       </div>
                     `;
                   }).join('')}
@@ -2288,8 +2305,6 @@
               handleSearchInput(e.target.value);
             });
           }
-          const sBtn = document.getElementById('search-open-settings');
-          if (sBtn) sBtn.addEventListener('click', () => openModal('modal-settings'));
         }
 
         // 3. LIBRARY VIEW (Mobile & Desktop)
@@ -2302,7 +2317,7 @@
                   <button id="lib-create-btn" class="px-3.5 py-2 rounded-full bg-[#242424] hover:bg-[#333] text-xs font-bold text-white flex items-center gap-1.5">
                     <i data-lucide="plus" class="w-4 h-4"></i> New
                   </button>
-                  <button id="lib-import-btn" class="px-3.5 py-2 rounded-full bg-[#1DB954] text-black text-xs font-bold flex items-center gap-1.5">
+                  <button id="lib-import-btn" class="px-3.5 py-2 rounded-full bg-[#5BC08A] text-black text-xs font-bold flex items-center gap-1.5">
                     <i data-lucide="link-2" class="w-4 h-4"></i> Import
                   </button>
                 </div>
@@ -2362,7 +2377,7 @@
             </div>
 
             <div class="px-4 md:px-6 py-4 flex items-center gap-4">
-              <button data-play-pl="${esc(pl.id)}" class="w-14 h-14 rounded-full bg-[#1DB954] hover:bg-[#1ED760] hover:scale-105 text-black flex items-center justify-center shadow-xl transition">
+              <button data-play-pl="${esc(pl.id)}" class="w-14 h-14 rounded-full bg-[#5BC08A] hover:bg-[#6FD49E] hover:scale-105 text-black flex items-center justify-center shadow-xl transition">
                 <i data-lucide="play" class="w-6 h-6 fill-current ml-0.5"></i>
               </button>
               <button id="pl-shuffle-play" class="px-4 py-2 rounded-full border border-white/20 hover:border-white text-xs font-bold text-white transition">Shuffle Play</button>
@@ -2411,7 +2426,7 @@
               </div>
             </div>
             <div class="px-4 md:px-6 py-4">
-              ${tracks.length > 0 ? `<button id="play-liked-all" class="w-14 h-14 rounded-full bg-[#1DB954] hover:bg-[#1ED760] hover:scale-105 text-black flex items-center justify-center shadow-xl transition"><i data-lucide="play" class="w-6 h-6 fill-current ml-0.5"></i></button>` : ''}
+              ${tracks.length > 0 ? `<button id="play-liked-all" class="w-14 h-14 rounded-full bg-[#5BC08A] hover:bg-[#6FD49E] hover:scale-105 text-black flex items-center justify-center shadow-xl transition"><i data-lucide="play" class="w-6 h-6 fill-current ml-0.5"></i></button>` : ''}
             </div>
             <div class="px-2 md:px-6 pb-8">
               ${tracks.length > 0 ? renderTrackTable(tracks, state.likedIds) : `<div class="py-12 text-center text-sm text-[#b3b3b3]">Tap the heart icon on any song to save it here.</div>`}
@@ -2455,6 +2470,16 @@
         if (mSet) mSet.addEventListener('click', () => openModal('modal-account'));
         const mUp = document.getElementById('mob-upload-btn');
         if (mUp) mUp.addEventListener('click', () => document.getElementById('local-file-input').click());
+        const hImp = document.getElementById('hume-act-import');
+        if (hImp) hImp.addEventListener('click', () => openModal('modal-import'));
+        const hEq = document.getElementById('hume-act-eq');
+        if (hEq) hEq.addEventListener('click', () => openModal('modal-eq'));
+        const hPill = document.getElementById('hume-status-pill');
+        if (hPill) hPill.addEventListener('click', () => {
+          document.getElementById('full-player-sheet').classList.remove('hidden');
+          document.getElementById('full-player-sheet').classList.add('flex');
+          renderFullExtra();
+        });
       }
 
       function renderRightSidebar() {
@@ -2477,14 +2502,14 @@
                   <div class="text-lg font-extrabold text-white truncate">${esc(cur.title)}</div>
                   <div class="text-sm text-[#b3b3b3] truncate">${esc(cur.artist)}</div>
                 </div>
-                <button data-like-track="${esc(cur.id)}" class="${state.likedIds.includes(cur.id) ? 'text-[#1DB954]' : 'text-[#b3b3b3]'} p-1">
-                  <i data-lucide="heart" class="w-5 h-5 ${state.likedIds.includes(cur.id) ? 'fill-[#1DB954]' : ''}"></i>
+                <button data-like-track="${esc(cur.id)}" class="${state.likedIds.includes(cur.id) ? 'text-[#5BC08A]' : 'text-[#b3b3b3]'} p-1">
+                  <i data-lucide="heart" class="w-5 h-5 ${state.likedIds.includes(cur.id) ? 'fill-[#5BC08A]' : ''}"></i>
                 </button>
               </div>
               <div class="p-3.5 rounded-xl bg-[#1f1f1f] space-y-1.5">
                 <div class="text-xs font-bold text-white">Playback Source</div>
                 <div class="text-xs text-[#b3b3b3]">${cur.source === 'youtube' ? 'YouTube Free Stream' : 'Local Audio + 5-Band EQ'}</div>
-                ${cur.videoId ? `<a href="https://www.youtube.com/watch?v=${esc(cur.videoId)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-xs text-[#1DB954] hover:underline pt-1">Open source on YouTube <i data-lucide="external-link" class="w-3 h-3"></i></a>` : ''}
+                ${cur.videoId ? `<a href="https://www.youtube.com/watch?v=${esc(cur.videoId)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-xs text-[#5BC08A] hover:underline pt-1">Open source on YouTube <i data-lucide="external-link" class="w-3 h-3"></i></a>` : ''}
               </div>
             </div>
           `;
@@ -2498,7 +2523,7 @@
                   <div class="flex items-center gap-2.5 p-2 rounded-lg bg-white/5">
                     <div class="w-10 h-10 rounded bg-[#242424] overflow-hidden shrink-0">${cur.cover ? `<img src="${esc(cur.cover)}" class="w-full h-full object-cover" />` : ''}</div>
                     <div class="min-w-0">
-                      <div class="text-xs font-bold text-[#1DB954] truncate">${esc(cur.title)}</div>
+                      <div class="text-xs font-bold text-[#5BC08A] truncate">${esc(cur.title)}</div>
                       <div class="text-[11px] text-[#b3b3b3] truncate">${esc(cur.artist)}</div>
                     </div>
                   </div>
@@ -2568,13 +2593,7 @@
         document.getElementById('desk-player-artist').textContent = artist;
         document.getElementById('mob-player-title').textContent = cur ? cur.title : 'Tap any song to play';
         document.getElementById('mob-player-artist').textContent = cur ? cur.artist : 'Spotify';
-        const miniColors = ['#48231e', '#1e3a4c', '#3b2448', '#1d3c2e', '#4a2e1b', '#282828'];
-        const miniEl = document.getElementById('mobile-mini-player');
-        if (miniEl && cur) {
-          let h = 0;
-          for (let i = 0; i < cur.title.length; i++) h = (h * 31 + cur.title.charCodeAt(i)) % miniColors.length;
-          miniEl.style.backgroundColor = miniColors[Math.abs(h) % miniColors.length];
-        }
+
         document.getElementById('full-player-title').textContent = title;
         document.getElementById('full-player-artist').textContent = artist;
         document.getElementById('full-player-source').textContent = cur ? (cur.album || 'Spotify Cloud') : 'Spotify Catalog';
@@ -2609,24 +2628,24 @@
         ['desk-like-btn', 'mob-like-btn', 'full-like-btn'].forEach(id => {
           const btn = document.getElementById(id);
           if (!btn) return;
-          btn.classList.toggle('text-[#1DB954]', !!isLiked);
+          btn.classList.toggle('text-[#5BC08A]', !!isLiked);
           btn.classList.toggle('text-[#b3b3b3]', !isLiked);
           const svg = btn.querySelector('svg, i');
-          if (svg) svg.classList.toggle('fill-[#1DB954]', !!isLiked);
+          if (svg) svg.classList.toggle('fill-[#5BC08A]', !!isLiked);
         });
 
         // Shuffle / Repeat active tint
         ['btn-shuffle', 'full-btn-shuffle'].forEach(id => {
           const b = document.getElementById(id);
           if (b) {
-            b.classList.toggle('text-[#1DB954]', state.shuffle);
+            b.classList.toggle('text-[#5BC08A]', state.shuffle);
             b.classList.toggle('text-[#b3b3b3]', !state.shuffle);
           }
         });
         ['btn-repeat', 'full-btn-repeat'].forEach(id => {
           const b = document.getElementById(id);
           if (b) {
-            b.classList.toggle('text-[#1DB954]', state.repeat !== 'off');
+            b.classList.toggle('text-[#5BC08A]', state.repeat !== 'off');
             b.classList.toggle('text-[#b3b3b3]', state.repeat === 'off');
             b.title = 'Repeat: ' + state.repeat;
           }
@@ -2676,8 +2695,8 @@
         const grid = document.getElementById('eq-sliders-grid');
         grid.innerHTML = EQ_BANDS.map((b, i) => `
           <div class="flex flex-col items-center gap-2">
-            <span id="eq-val-${i}" class="text-[10px] text-[#1DB954] tabular-nums">${state.eqGains[i] > 0 ? '+' : ''}${state.eqGains[i]}dB</span>
-            <input data-eq-idx="${i}" type="range" min="-12" max="12" value="${state.eqGains[i]}" class="w-full accent-[#1DB954]" />
+            <span id="eq-val-${i}" class="text-[10px] text-[#5BC08A] tabular-nums">${state.eqGains[i] > 0 ? '+' : ''}${state.eqGains[i]}dB</span>
+            <input data-eq-idx="${i}" type="range" min="-12" max="12" value="${state.eqGains[i]}" class="w-full accent-[#5BC08A]" />
             <span class="text-[10px] text-[#b3b3b3]">${b.label}</span>
           </div>
         `).join('');
@@ -2907,14 +2926,14 @@
       });
       document.getElementById('full-tab-lyrics').addEventListener('click', () => {
         state.fullExtraTab = 'lyrics';
-        document.getElementById('full-tab-lyrics').className = 'px-3 py-1 rounded-full text-xs font-bold bg-white text-black';
-        document.getElementById('full-tab-queue').className = 'px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-white';
+        document.getElementById('full-tab-lyrics').className = 'py-1.5 rounded-full text-xs font-semibold bg-[#2B3036] text-white transition';
+        document.getElementById('full-tab-queue').className = 'py-1.5 rounded-full text-xs font-semibold text-[#9BA1A8] hover:text-white transition';
         renderFullExtra();
       });
       document.getElementById('full-tab-queue').addEventListener('click', () => {
         state.fullExtraTab = 'queue';
-        document.getElementById('full-tab-queue').className = 'px-3 py-1 rounded-full text-xs font-bold bg-white text-black';
-        document.getElementById('full-tab-lyrics').className = 'px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-white';
+        document.getElementById('full-tab-queue').className = 'py-1.5 rounded-full text-xs font-semibold bg-[#2B3036] text-white transition';
+        document.getElementById('full-tab-lyrics').className = 'py-1.5 rounded-full text-xs font-semibold text-[#9BA1A8] hover:text-white transition';
         renderFullExtra();
       });
 
@@ -2952,7 +2971,7 @@
           name,
           description: desc,
           gradient: 'from-emerald-600 via-teal-900 to-[#121212]',
-          accent: '#1DB954',
+          accent: '#5BC08A',
           editorial: false,
           trackIds: []
         };
