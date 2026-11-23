@@ -224,6 +224,11 @@ app.post('/api/import-spotify', async (req, res) => {
   }
 });
 
+// Privacy Policy page (for Google OAuth production publishing)
+app.get('/privacy', (_req, res) => {
+  res.type('html').send(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Privacy Policy</title><style>body{background:#121212;color:#fff;font-family:system-ui,sans-serif;max-width:680px;margin:40px auto;padding:0 20px;line-height:1.6}a{color:#1DB954}</style></head><body><h1>Privacy Policy</h1><p>This app uses Google Sign-In solely to identify your profile (name, email, and profile picture) so your playlists, liked songs, and playback preferences stay saved under your account. We do not sell or share your data with third parties.</p><p><a href="/">Back to App</a></p></body></html>`);
+});
+
 // SPA fallback
 app.get('*', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
