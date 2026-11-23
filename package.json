@@ -1,0 +1,19 @@
+{
+  "name": "spotify-cloud-pwa",
+  "version": "1.0.0",
+  "description": "24/7 Cloud Spotify-style PWA with YouTube Music global search and automatic Spotify playlist URL importer",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "node-fetch": "^2.7.0",
+    "spotify-url-info": "^3.2.12",
+    "yt-search": "^2.12.1"
+  }
+}
