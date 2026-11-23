@@ -1203,6 +1203,26 @@
 
         const ytHost = document.getElementById('yt-player-host');
 
+        // Lazy-resolve imported Spotify track on YouTube when played (instant 100-song import, <0.5s play start)
+        if (track.source === 'spotify_lazy' && !track.videoId && state.settings.backendUrl) {
+          showToast(`Finding "${track.title}"...`);
+          try {
+            const base = state.settings.backendUrl.replace(/\/$/, '');
+            const r = await fetch(`${base}/api/search?q=${encodeURIComponent(track.title + ' ' + track.artist)}`);
+            if (r.ok) {
+              const d = await r.json();
+              const top = d.tracks && d.tracks[0];
+              if (top && top.videoId) {
+                track.videoId = top.videoId;
+                track.source = 'youtube';
+                track.duration = top.duration || track.duration;
+                track.cover = top.thumbnail || `https://i.ytimg.com/vi/${top.videoId}/hqdefault.jpg`;
+                saveState();
+              }
+            }
+          } catch (e) {}
+        }
+
         // Prefer direct HTTPS audio stream (iTunes / Audius / Local) for 100% reliable instant playback
         if (track.source === 'local' && track.blobUrl) {
           if (ytHost) ytHost.classList.remove('yt-visible');
@@ -1636,17 +1656,19 @@
 
           const newIds = [];
           const existingIds = new Set(state.tracks.map(t => t.id));
-          (data.tracks || []).forEach(t => {
+          (data.tracks || []).forEach((t, idx) => {
+            const hasYt = !!t.videoId;
             const tr = {
-              id: 'yt_' + t.videoId,
-              videoId: t.videoId,
+              id: hasYt ? ('yt_' + t.videoId) : ('sp_' + (t.spotifyUri || (Date.now() + '_' + idx)).replace(/[^a-zA-Z0-9_]/g, '')),
+              videoId: t.videoId || '',
               title: t.title,
               artist: t.artist,
               album: data.name || 'Imported from Spotify',
               genre: 'Imported',
               duration: t.duration || 0,
-              source: 'youtube',
-              cover: t.thumbnail || `https://i.ytimg.com/vi/${t.videoId}/hqdefault.jpg`
+              source: hasYt ? 'youtube' : 'spotify_lazy',
+              streamUrl: '',
+              cover: t.thumbnail || (hasYt ? `https://i.ytimg.com/vi/${t.videoId}/hqdefault.jpg` : '')
             };
             if (!existingIds.has(tr.id)) {
               state.tracks.push(tr);
