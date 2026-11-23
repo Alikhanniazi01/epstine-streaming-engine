@@ -246,34 +246,28 @@ app.post('/api/import-spotify', async (req, res) => {
     const nextData = JSON.parse(ndMatch[1]);
     const entity = nextData?.props?.pageProps?.state?.data?.entity || {};
     const playlistName = entity.name || entity.title || 'Imported Spotify Playlist';
-    const rawTracks = (entity.trackList || []).slice(0, 35);
+    const rawTracks = (entity.trackList || []).slice(0, 100);
 
     if (rawTracks.length === 0) {
       return res.status(404).json({ error: 'No tracks found. Make sure your Spotify playlist is Public.' });
     }
 
-    // Match all tracks on YouTube in parallel (8 concurrent workers -> finishes in ~3-5 seconds!)
-    const matched = await mapWithConcurrency(rawTracks, 8, async (item) => {
+    const coverUrl = entity.coverArt?.sources?.[0]?.url || '';
+    const tracks = rawTracks.map((item, idx) => {
       const title = String(item.title || item.name || '').trim();
       const artist = String(item.subtitle || '').replace(/\u00a0/g, ' ').trim();
       if (!title) return null;
-      try {
-        const r = await yts(`${title} ${artist} audio`);
-        const top = r.videos && r.videos[0];
-        if (top) {
-          return {
-            videoId: top.videoId,
-            title,
-            artist: artist || top.author?.name || 'Unknown Artist',
-            duration: top.seconds || Math.round((item.duration || 0) / 1000),
-            thumbnail: top.thumbnail || `https://i.ytimg.com/vi/${top.videoId}/hqdefault.jpg`
-          };
-        }
-      } catch (_e) {}
-      return null;
-    });
+      return {
+        spotifyUri: item.uri || `sp_${spotifyId}_${idx}`,
+        title,
+        artist: artist || 'Unknown Artist',
+        duration: Math.round((item.duration || 0) / 1000),
+        previewUrl: item.audioPreview?.url || '',
+        thumbnail: coverUrl
+      };
+    }).filter(Boolean);
 
-    res.json({ name: playlistName, totalFound: rawTracks.length, tracks: matched });
+    res.json({ name: playlistName, totalFound: tracks.length, tracks });
   } catch (err) {
     res.status(500).json({ error: 'Could not import Spotify playlist: ' + err.message });
   }
