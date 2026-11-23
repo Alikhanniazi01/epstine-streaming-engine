@@ -853,6 +853,8 @@
         duration: 0,
         searchQuery: '',
         remoteResults: [],
+        searchSuggestions: [],
+        correctedQuery: '',
         searchingRemote: false,
         lyricsCache: {},
         sleepEndTime: null,
@@ -1569,6 +1571,8 @@
           searchDebounce = setTimeout(() => runGlobalSearch(state.searchQuery), 180);
         } else {
           state.remoteResults = [];
+          state.searchSuggestions = [];
+          state.correctedQuery = '';
           state.searchingRemote = false;
           updateSearchResultsDOM();
         }
@@ -1608,6 +1612,8 @@
             const res = await fetch(`${base}/api/search?q=${encodeURIComponent(query)}`, { signal });
             if (res.ok) {
               const data = await res.json();
+              state.correctedQuery = data.correctedQuery || '';
+              state.searchSuggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
               results = (data.tracks || []).map(t => ({
                 id: 'yt_' + t.videoId,
                 videoId: t.videoId,
@@ -1896,6 +1902,12 @@
       // =========================================================
       // 8. NAVIGATION & LIBRARY ACTIONS
       // =========================================================
+      function pushBrowserState(tag, data = {}) {
+        try {
+          window.history.pushState({ appNav: true, tag, ...data }, '');
+        } catch (e) {}
+      }
+
       function navigate(view, param = null, pushHistory = true) {
         state.view = view;
         state.viewParam = param;
@@ -1903,6 +1915,7 @@
           state.history = state.history.slice(0, state.historyIdx + 1);
           state.history.push({ view, param });
           state.historyIdx = state.history.length - 1;
+          pushBrowserState('view', { view, param });
         }
         updateMobileNavHighlight();
         renderMain();
@@ -2085,10 +2098,26 @@
         `;
       }
 
+      function fuzzyMatch(text, query) {
+        const t = text.toLowerCase();
+        const q = query.toLowerCase().trim();
+        if (!q) return false;
+        if (t.includes(q)) return true;
+        // Token overlap + subsequence check for typos
+        const words = q.split(/\s+/).filter(w => w.length >= 2);
+        if (words.length > 0 && words.every(w => t.includes(w))) return true;
+        // Ordered character subsequence for minor typos (e.g. "pasori" -> "pasoori")
+        let qi = 0;
+        for (let ti = 0; ti < t.length && qi < q.length; ti++) {
+          if (t[ti] === q[qi]) qi++;
+        }
+        return qi === q.length;
+      }
+
       function buildSearchResultsHTML() {
         const q = state.searchQuery.toLowerCase();
         const localMatches = q
-          ? state.tracks.filter(t => (t.title + ' ' + t.artist + ' ' + t.album + ' ' + t.genre).toLowerCase().includes(q))
+          ? state.tracks.filter(t => fuzzyMatch(t.title + ' ' + t.artist + ' ' + t.album + ' ' + t.genre, q))
           : [];
         if (!q) {
           return `
@@ -2104,6 +2133,12 @@
         }
         return `
           ${state.searchingRemote ? `<div class="text-xs text-[#5BC08A] font-semibold mb-4 flex items-center gap-2">Searching global music catalog...</div>` : ''}
+          ${state.correctedQuery ? `<div class="mb-3 text-xs text-[#9BA1A8]">Showing results for <span class="text-[#5BC08A] font-semibold">"${esc(state.correctedQuery)}"</span></div>` : ''}
+          ${state.searchSuggestions.length > 0 ? `
+            <div class="flex items-center gap-2 overflow-x-auto no-scrollbar mb-4">
+              ${state.searchSuggestions.map(sg => `<button data-genre-query="${esc(sg)}" class="px-3 py-1 rounded-full bento-pill text-xs text-[#D3D7DC] hover:text-white shrink-0">${esc(sg)}</button>`).join('')}
+            </div>
+          ` : ''}
           ${state.remoteResults.length > 0 ? `
             <h2 class="text-lg font-bold mb-3">Global Search Results</h2>
             <div class="mb-7">${renderTrackTable(state.remoteResults)}</div>
@@ -2475,11 +2510,7 @@
         const hEq = document.getElementById('hume-act-eq');
         if (hEq) hEq.addEventListener('click', () => openModal('modal-eq'));
         const hPill = document.getElementById('hume-status-pill');
-        if (hPill) hPill.addEventListener('click', () => {
-          document.getElementById('full-player-sheet').classList.remove('hidden');
-          document.getElementById('full-player-sheet').classList.add('flex');
-          renderFullExtra();
-        });
+        if (hPill) hPill.addEventListener('click', openFullPlayerSheet);
       }
 
       function renderRightSidebar() {
@@ -2676,6 +2707,7 @@
           panel.classList.remove('hidden');
           backdrop.classList.remove('hidden');
           backdrop.classList.add('flex');
+          pushBrowserState('modal', { modalId });
         }
         if (modalId === 'modal-settings') {
           document.getElementById('setting-backend-url').value = state.settings.backendUrl || '';
@@ -2915,11 +2947,21 @@
       document.getElementById('full-player-eq-btn').addEventListener('click', () => openModal('modal-eq'));
 
       // Mobile Full Player Sheet
-      document.getElementById('mob-mini-open').addEventListener('click', () => {
-        document.getElementById('full-player-sheet').classList.remove('hidden');
-        document.getElementById('full-player-sheet').classList.add('flex');
+      function openFullPlayerSheet() {
+        const sheet = document.getElementById('full-player-sheet');
+        if (sheet.classList.contains('hidden')) {
+          sheet.classList.remove('hidden');
+          sheet.classList.add('flex');
+          pushBrowserState('sheet');
+        }
         renderFullExtra();
-      });
+      }
+      function closeFullPlayerSheet() {
+        const sheet = document.getElementById('full-player-sheet');
+        sheet.classList.add('hidden');
+        sheet.classList.remove('flex');
+      }
+      document.getElementById('mob-mini-open').addEventListener('click', openFullPlayerSheet);
       document.getElementById('full-player-close').addEventListener('click', () => {
         document.getElementById('full-player-sheet').classList.add('hidden');
         document.getElementById('full-player-sheet').classList.remove('flex');
@@ -3209,6 +3251,49 @@
       updateAccountUI();
       updatePlayerUI();
       lucide.createIcons();
+      // Android Back-Button Navigation & Double-Back-to-Exit Guard
+      let lastBackPressTime = 0;
+      try {
+        window.history.replaceState({ appRoot: true }, '');
+        window.history.pushState({ appGuard: true }, '');
+      } catch (e) {}
+
+      window.addEventListener('popstate', () => {
+        const modalOpen = !document.getElementById('modal-backdrop').classList.contains('hidden');
+        const sheetOpen = !document.getElementById('full-player-sheet').classList.contains('hidden');
+
+        if (modalOpen) {
+          closeModals();
+          return;
+        }
+        if (sheetOpen) {
+          closeFullPlayerSheet();
+          return;
+        }
+        if (state.historyIdx > 0) {
+          state.historyIdx--;
+          const prev = state.history[state.historyIdx];
+          navigate(prev.view, prev.param, false);
+          return;
+        }
+        if (state.view !== 'home') {
+          navigate('home', null, false);
+          pushBrowserState('guard');
+          return;
+        }
+
+        // Already on Home: require pressing Back twice within 2.5 seconds to exit
+        const now = Date.now();
+        if (now - lastBackPressTime < 2500) {
+          // Allow second back press to exit cleanly
+          try { window.history.back(); } catch (e) {}
+        } else {
+          lastBackPressTime = now;
+          pushBrowserState('guard');
+          showToast('Press back again to exit');
+        }
+      });
+
       hydrateStarterCatalog();
       initGoogleAuth();
     })();
