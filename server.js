@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const https = require('https');
+const zlib = require('zlib');
 const yts = require('yt-search');
 const nativeFetch = globalThis.fetch || require('node-fetch');
 
@@ -88,7 +89,27 @@ function requireAuth(req, res, next) {
 
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+
+// Built-in gzip compression for fast mobile data loads (zero extra dependencies)
+app.use((req, res, next) => {
+  const accept = req.headers['accept-encoding'] || '';
+  if (!accept.includes('gzip')) return next();
+  const origJson = res.json.bind(res);
+  res.json = (body) => {
+    const raw = Buffer.from(JSON.stringify(body));
+    if (raw.length < 1024) return origJson(body);
+    res.setHeader('Content-Encoding', 'gzip');
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.end(zlib.gzipSync(raw));
+  };
+  next();
+});
+
+app.use(express.static(path.join(__dirname, 'public'), { maxAge: '5m' }));
+
+// In-memory search cache (30-min TTL, up to 500 queries -> <5ms repeat searches)
+const searchCache = new Map();
+const CACHE_TTL_MS = 30 * 60 * 1000;
 
 // Health check for Render / Railway 24/7 monitoring
 app.get('/api/health', (_req, res) => {
@@ -184,10 +205,16 @@ app.post('/api/user/data', requireAuth, (req, res) => {
   res.json({ status: 'saved', updatedAt: db[req.user.sub].updatedAt });
 });
 
-// Global YouTube / YouTube Music Search (No API Key Required)
+// Global YouTube / YouTube Music Search with 30-min cache (No API Key Required)
 app.get('/api/search', async (req, res) => {
   const q = String(req.query.q || '').trim();
   if (!q) return res.status(400).json({ error: 'Missing query parameter q' });
+
+  const key = q.toLowerCase();
+  const cached = searchCache.get(key);
+  if (cached && (Date.now() - cached.ts) < CACHE_TTL_MS) {
+    return res.json({ tracks: cached.tracks, cached: true });
+  }
 
   try {
     const result = await yts(q + ' audio');
@@ -198,7 +225,12 @@ app.get('/api/search', async (req, res) => {
       duration: v.seconds || 0,
       thumbnail: v.thumbnail || `https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`
     }));
-    res.json({ tracks });
+    if (searchCache.size >= 500) {
+      const oldestKey = searchCache.keys().next().value;
+      searchCache.delete(oldestKey);
+    }
+    searchCache.set(key, { ts: Date.now(), tracks });
+    res.json({ tracks, cached: false });
   } catch (err) {
     res.status(500).json({ error: 'Search failed: ' + err.message });
   }
