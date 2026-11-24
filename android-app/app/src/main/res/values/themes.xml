@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.PaperMusic" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#ECE5D8</item>
+        <item name="android:statusBarColor">#ECE5D8</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>
