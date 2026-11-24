@@ -105,7 +105,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, 'public'), { maxAge: '5m' }));
+app.use(express.static(path.join(__dirname, 'public'), { maxAge: '5m', dotfiles: 'allow' }));
 
 // In-memory search cache (30-min TTL, up to 500 queries -> <5ms repeat searches)
 const searchCache = new Map();
