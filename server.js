@@ -35,6 +35,8 @@ const PORT = process.env.PORT || 3000;
 const GOOGLE_CLIENT_ID = (process.env.GOOGLE_CLIENT_ID || '').trim();
 const SESSION_SECRET = process.env.SESSION_SECRET || crypto.createHash('sha256').update(GOOGLE_CLIENT_ID || 'spotify-cloud-local-secret').digest('hex');
 
+const UPSTASH_URL = (process.env.UPSTASH_REDIS_REST_URL || '').trim().replace(/\/$/, '');
+const UPSTASH_TOKEN = (process.env.UPSTASH_REDIS_REST_TOKEN || '').trim();
 const DATA_DIR = path.join(__dirname, 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 
@@ -54,6 +56,37 @@ function saveUsersDB(db) {
   } catch (err) {
     console.error('Failed to save users DB:', err.message);
   }
+}
+
+async function getUserRecord(sub) {
+  if (UPSTASH_URL && UPSTASH_TOKEN) {
+    try {
+      const r = await nativeFetch(`${UPSTASH_URL}/get/${encodeURIComponent('user:' + sub)}`, {
+        headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` }
+      });
+      if (r.ok) {
+        const j = await r.json();
+        if (j && j.result) return JSON.parse(j.result);
+      }
+    } catch (e) { console.error('Upstash read error:', e.message); }
+  }
+  const db = loadUsersDB();
+  return db[sub] || null;
+}
+
+async function setUserRecord(sub, record) {
+  if (UPSTASH_URL && UPSTASH_TOKEN) {
+    try {
+      await nativeFetch(`${UPSTASH_URL}/set/${encodeURIComponent('user:' + sub)}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${UPSTASH_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(record)
+      });
+    } catch (e) { console.error('Upstash write error:', e.message); }
+  }
+  const db = loadUsersDB();
+  db[sub] = record;
+  saveUsersDB(db);
 }
 
 function signSession(payload) {
@@ -113,7 +146,7 @@ const CACHE_TTL_MS = 30 * 60 * 1000;
 
 // Health check for Render / Railway 24/7 monitoring
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'spotify-cloud-pwa', googleAuthEnabled: !!GOOGLE_CLIENT_ID });
+  res.json({ status: 'ok', service: 'spotify-cloud-pwa', googleAuthEnabled: !!GOOGLE_CLIENT_ID, persistentDb: !!(UPSTASH_URL && UPSTASH_TOKEN) });
 });
 
 // Public Auth Config (exposes only the public Google OAuth Client ID)
@@ -143,18 +176,17 @@ app.post('/api/auth/google', async (req, res) => {
       picture: info.picture || ''
     };
 
-    const db = loadUsersDB();
-    if (!db[userProfile.sub]) {
-      db[userProfile.sub] = {
+    let entry = await getUserRecord(userProfile.sub);
+    if (!entry) {
+      entry = {
         profile: userProfile,
         data: { likedIds: [], recentIds: [], customPlaylists: [], extraTracks: [], volume: 80, eqGains: [0, 0, 0, 0, 0] },
         updatedAt: Date.now()
       };
-      saveUsersDB(db);
     } else {
-      db[userProfile.sub].profile = userProfile;
-      saveUsersDB(db);
+      entry.profile = userProfile;
     }
+    await setUserRecord(userProfile.sub, entry);
 
     const token = signSession({
       ...userProfile,
@@ -164,7 +196,7 @@ app.post('/api/auth/google', async (req, res) => {
     res.json({
       token,
       user: userProfile,
-      data: db[userProfile.sub].data
+      data: entry.data
     });
   } catch (err) {
     res.status(500).json({ error: 'Google sign-in verification failed: ' + err.message });
@@ -172,9 +204,8 @@ app.post('/api/auth/google', async (req, res) => {
 });
 
 // Load signed-in user's saved library & preferences
-app.get('/api/user/data', requireAuth, (req, res) => {
-  const db = loadUsersDB();
-  const entry = db[req.user.sub];
+app.get('/api/user/data', requireAuth, async (req, res) => {
+  const entry = await getUserRecord(req.user.sub);
   res.json({
     user: { sub: req.user.sub, email: req.user.email, name: req.user.name, picture: req.user.picture },
     data: entry ? entry.data : null
@@ -182,14 +213,13 @@ app.get('/api/user/data', requireAuth, (req, res) => {
 });
 
 // Save signed-in user's library & preferences
-app.post('/api/user/data', requireAuth, (req, res) => {
+app.post('/api/user/data', requireAuth, async (req, res) => {
   const incoming = req.body?.data;
   if (!incoming || typeof incoming !== 'object') {
     return res.status(400).json({ error: 'Missing data payload' });
   }
 
-  const db = loadUsersDB();
-  db[req.user.sub] = {
+  const record = {
     profile: { sub: req.user.sub, email: req.user.email, name: req.user.name, picture: req.user.picture },
     data: {
       likedIds: Array.isArray(incoming.likedIds) ? incoming.likedIds.slice(0, 1000) : [],
@@ -201,8 +231,8 @@ app.post('/api/user/data', requireAuth, (req, res) => {
     },
     updatedAt: Date.now()
   };
-  saveUsersDB(db);
-  res.json({ status: 'saved', updatedAt: db[req.user.sub].updatedAt });
+  await setUserRecord(req.user.sub, record);
+  res.json({ status: 'saved', updatedAt: record.updatedAt });
 });
 
 // Helper: fetch YouTube autocomplete suggestions for typo / spelling correction (~80ms)
