@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.onrender.epstine_streaming_engine_1.twa",
+        "sha256_cert_fingerprints": ["34:41:76:57:15:F7:C4:B0:EA:DA:4C:B5:42:99:34:D8:EA:40:CF:32:F0:F0:54:0D:52:93:3D:8C:B7:F1:F7:15"]
+      }
+    }]
