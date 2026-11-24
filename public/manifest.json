@@ -1,17 +1,36 @@
 {
+  "id": "/",
   "name": "Paper Music",
   "short_name": "Paper",
+  "description": "Fast, tactile personal music player with Spotify playlist import and Google Sync.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ECE5D8",
   "theme_color": "#ECE5D8",
   "orientation": "portrait-primary",
+  "categories": [
+    "music",
+    "entertainment"
+  ],
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='144' fill='%231C1814'/%3E%3Ccircle cx='256' cy='256' r='132' fill='%23F27D52'/%3E%3Ccircle cx='256' cy='256' r='44' fill='%23ECE5D8'/%3E%3C/svg%3E",
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
