@@ -907,6 +907,7 @@
             navigator.mediaSession.setActionHandler('pause', () => { if (state.playing) togglePlay(); });
             navigator.mediaSession.setActionHandler('nexttrack', () => stepTrack(1));
             navigator.mediaSession.setActionHandler('previoustrack', () => stepTrack(-1));
+            navigator.mediaSession.playbackState = 'playing';
           }
         } catch (e) {}
 
@@ -1446,12 +1447,23 @@
 
       function applyCloudData(d) {
         if (!d) return;
-        if (Array.isArray(d.likedIds)) state.likedIds = d.likedIds;
-        if (Array.isArray(d.recentIds)) state.recentIds = d.recentIds;
-        if (Array.isArray(d.customPlaylists)) state.playlists = [...DEFAULT_PLAYLISTS, ...d.customPlaylists.map(p => ({ ...p, h: p.h ?? hueFor(p.name) }))];
+        // MERGE (never overwrite) local & cloud data so playlists are never lost after a server restart
+        if (Array.isArray(d.likedIds)) {
+          state.likedIds = [...new Set([...d.likedIds, ...state.likedIds])];
+        }
+        if (Array.isArray(d.recentIds)) {
+          state.recentIds = [...new Set([...d.recentIds, ...state.recentIds])].slice(0, 30);
+        }
+        if (Array.isArray(d.customPlaylists)) {
+          const localCustom = state.playlists.filter(p => !p.editorial);
+          const mergedMap = new Map();
+          localCustom.forEach(p => mergedMap.set(p.id, p));
+          d.customPlaylists.forEach(p => mergedMap.set(p.id, { ...p, h: p.h ?? hueFor(p.name) }));
+          state.playlists = [...DEFAULT_PLAYLISTS, ...mergedMap.values()];
+        }
         if (Array.isArray(d.extraTracks)) {
           const ids = new Set(state.tracks.map(t => t.id));
-          d.extraTracks.forEach(t => { if (!ids.has(t.id) && t.source !== 'local') state.tracks.push({ ...t, h: t.h ?? hueFor(t.title) }); });
+          d.extraTracks.forEach(t => { if (!ids.has(t.id) && t.source !== 'local') { state.tracks.push({ ...t, h: t.h ?? hueFor(t.title) }); ids.add(t.id); } });
         }
         renderHome();
         renderLib();
