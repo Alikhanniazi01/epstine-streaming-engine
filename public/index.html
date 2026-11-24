@@ -868,6 +868,14 @@
           } catch (e) {}
         }
 
+        if (t.source !== 'local' && window.PaperNative && typeof window.PaperNative.playTrack === 'function') {
+          if (ytReady && ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
+          audioEl.pause();
+          window.PaperNative.playTrack(t.id, t.title, t.artist, t.videoId || '', t.cover || '');
+          fetchLyrics(t);
+          prefetchNext();
+          return;
+        }
         if (t.source === 'local' && t.blobUrl) {
           if (ytReady && ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
           bindLocalEQ();
@@ -918,6 +926,12 @@
       function togglePlay() {
         const cur = getTrack(state.currentId);
         if (!cur) return;
+        if (cur.source !== 'local' && window.PaperNative && typeof window.PaperNative.togglePlay === 'function') {
+          window.PaperNative.togglePlay();
+          state.playing = !state.playing;
+          drawMiniAndNP();
+          return;
+        }
         const usingYt = cur.source === 'youtube' && !cur.streamUrl && state.backendUrl;
         if (usingYt && ytReady && ytPlayer) {
           if (state.playing) { ytPlayer.pauseVideo(); state.playing = false; }
@@ -954,6 +968,11 @@
         const target = Math.max(0, Math.min(state.dur, (pct / 100) * state.dur));
         state.curTime = target;
         const cur = getTrack(state.currentId);
+        if (cur.source !== 'local' && window.PaperNative && typeof window.PaperNative.seekTo === 'function') {
+          window.PaperNative.seekTo(target);
+          updateProgress();
+          return;
+        }
         if (cur.source === 'youtube' && !cur.streamUrl && state.backendUrl && ytReady && ytPlayer) {
           ytPlayer.seekTo(target, true);
         } else {
@@ -1664,6 +1683,30 @@
           toast('Press back again to exit');
         }
       });
+
+      window.__onNativeState = function (playing, curSec, durSec) {
+        const changed = state.playing !== !!playing;
+        state.playing = !!playing;
+        if (typeof curSec === 'number' && !isNaN(curSec)) state.curTime = curSec;
+        if (typeof durSec === 'number' && durSec > 0) state.dur = durSec;
+        if (changed) drawMiniAndNP();
+        else updateProgress();
+      };
+      window.__onNativeEnded = function () {
+        onEnded();
+      };
+      window.onNativeBack = function () {
+        if ($('#modal-bg').classList.contains('on')) { closeModals(); return 'HANDLED'; }
+        if ($('#np').classList.contains('on')) { $('#np').classList.remove('on'); return 'HANDLED'; }
+        if (state.navStack.length > 1) {
+          state.navStack.pop();
+          const prev = state.navStack[state.navStack.length - 1];
+          go(prev.view, prev.plId, false);
+          return 'HANDLED';
+        }
+        if (state.view !== 'home') { go('home', null, false); return 'HANDLED'; }
+        return 'EXIT';
+      };
 
       renderHome();
       renderLib();
